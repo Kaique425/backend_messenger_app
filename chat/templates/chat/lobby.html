@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Lobby</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+    <h1>Let's Chat!!!</h1>
+    <div id="messages" >
+        {% for message in webhook_messages %}
+        <div>
+            <p>{{message.body}}</p>
+        </div>
+        <div>_________________________________________________________________________________________________</div>
+        {% endfor %}
+    </div>
+    <div id="messages" >
+        {% for message in messages %}
+        <div>
+            <p>{{message.body}}</p>
+        </div>
+        {% endfor %}
+    </div>
+    <form id="form" >
+        <input type="text" name="message">
+
+    </form>
+    <script>
+        let url = `ws://127.0.0.1:8000/ws/socket-server/waent_5518996696477`
+        
+        const chatSocket = new WebSocket(url)
+        
+
+        chatSocket.onmessage = function(e){
+            let data = JSON.parse(e.data)
+            console.log("Data:",data)
+
+            if(data.type === "chat"){
+                messages = document.getElementById("messages")
+                messages.insertAdjacentHTML("beforeend", 
+                `<div>
+                    <p>${data.message}</p>
+                </div>`)
+            }
+        }
+
+
+        let form = document.getElementById("form")
+
+        form.addEventListener("submit", (e) => {
+            e.preventDefault()
+            let message = e.target.message.value
+
+            chatSocket.send(JSON.stringify({
+                "message": message,
+            }))
+            form.reset()
+        })
+
+    </script>
+
+
+
+</body>
+</html>
