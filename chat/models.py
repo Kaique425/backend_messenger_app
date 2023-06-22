@@ -17,7 +17,7 @@ class Contact(models.Model):
 class Message(models.Model):
     whatsapp_message_id = models.CharField(max_length=264, default="")
     send_by_operator = models.BooleanField(default=False)
-    body = models.TextField()
+    body = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
     )

@@ -2,7 +2,7 @@ import requests
 
 from .models import Message
 
-AUTH_TOKEN = ""
+AUTH_TOKEN = "EAAKhMTEACSEBAGMS1YQSkvhi7E7fdfPDYRGZClVlWSQlzlsWTfQ1EZCLjZCxPBHTcGl1J9oWZBAU3hElwulgAKdFiYBd4AvgfdJ350gPlzQ0QC0UcSyo8xfkyBZBGJFzCTsiHT7tFl9k8tFceDks66BP4ahf1l8E0CxCLEBXu18v1xqZBM8a5TaHrnJJEpY705ZAwoyrVjqxctt8rvlkmiJ"
 
 send_message_url = "https://graph.facebook.com/v16.0/101917902878484/messages"
 
@@ -26,6 +26,7 @@ def send_media_messages(file, caption):
 
     print(f"STATUS DO CODE ===> {response.status_code}")
     data = response.json()
+    return data, response.status_code
 
 
 def get_media_url(media_id):
@@ -74,5 +75,6 @@ def send_whatsapp_message(message):
             send_by_operator=True,
             whatsapp_message_id=message_infos["messages"][0]["id"],
             body=message,
+            type="text",
         )
     return response.status_code

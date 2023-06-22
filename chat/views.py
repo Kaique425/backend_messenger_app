@@ -30,13 +30,17 @@ class MidiaUpload(APIView):
         print(request.data)
         serializer = MessageSerializer(data=request.data, context={"request": request})
         if serializer.is_valid(raise_exception=True):
+            print("Passou AQUI")
             serializer.save()
-            print(serializer.data)
-
-            print(serializer.data["media"])
-            send_media_messages(
+            print(serializer.instance)
+            data, status_code = send_media_messages(
                 file=serializer.data["media"], caption=serializer.data["body"]
             )
+
+            serializer.instance.whatsapp_message_id = data["messages"][0].get("id")
+            serializer.instance.save()
+            print(serializer.data["media"])
+
             return Response(serializer.data, status=HTTP_200_OK)
         else:
             return Response(status=HTTP_400_BAD_REQUEST)
@@ -47,8 +51,12 @@ def send_message(request):
     data = request.data
     print(f"DATA {data}")
     message = data["message"]
+    serialized = MessageSerializer(data=data)
+    if serialized.is_valid(raise_exception=True):
+        print(f"SERIALIZER {serialized.data}")
+    print(f"MESSAGE CONTENT {message}")
     status_code = send_whatsapp_message(message)
-    return Response(status=status_code)
+    return Response(status=status_code, data=serialized.data)
 
 
 def lobby(request):
@@ -99,12 +107,18 @@ def webhook(request):
                 json_message = json.dumps(
                     {
                         "id": message.id,
-                        "send_by_operator": message.send_by_operator,
                         "body": message.body,
                         "status": message.status,
+                        "send_by_operator": message.send_by_operator,
                         "created_at": str(message.created_at),
+                        "type": message.type,
+                        "contacts": "[27]",
+                        "media_url": request.build_absolute_uri(message.media.url)
+                        if message.type in allowed_media_types
+                        else "",
                     }
                 )
+                print(json_message)
                 async_to_sync(channel_layer.group_send)(
                     channel_name,
                     {
