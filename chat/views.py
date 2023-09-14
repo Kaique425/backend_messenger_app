@@ -13,8 +13,12 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
-from .models import Contact, Message, WhatsAppPOST
-from .serializers import MessageSerializer
+from .models import Attendance, Contact, HighStructuredMessage, Message, WhatsAppPOST
+from .serializers import (
+    AttendanceSerializer,
+    HighStructuredMessageSerializer,
+    MessageSerializer,
+)
 from .whatsapp_requests import (
     get_media_url,
     send_media_messages,
@@ -23,39 +27,84 @@ from .whatsapp_requests import (
 )
 
 
+@api_view(["GET"])
+def get_attendance(request):
+    print(request.GET)
+    attendances = Attendance.objects.filter(is_closed=False)
+    serializer = AttendanceSerializer(instance=attendances, many=True)
+    return Response(status=200, data=serializer.data)
+
+
+@api_view(http_method_names=["GET"])
+def get_message_history(request, id):
+    messages = Message.objects.filter(attendance=id)
+    serializer = MessageSerializer(
+        instance=messages, many=True, context={"request": request}
+    )
+    return Response(data=serializer.data)
+
+
 class MidiaUpload(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, format=None):
-        print(request.data)
         serializer = MessageSerializer(data=request.data, context={"request": request})
         if serializer.is_valid(raise_exception=True):
-            print("Passou AQUI")
+            print("IS VALID!!")
             serializer.save()
-            print(serializer.instance)
+            print(f"SERIALIZER {serializer.data}")
             data, status_code = send_media_messages(
-                file=serializer.data["media"], caption=serializer.data["body"]
+                file=serializer.data["media_url"],
+                caption=serializer.data["body"],
+                phone_number=request.data["phone_number"],
             )
 
             serializer.instance.whatsapp_message_id = data["messages"][0].get("id")
+
+            attendance = Attendance.objects.filter(
+                customer_phone_number=request.data["phone_number"]
+            ).first()
+
+            serializer.instance.attendance = attendance
             serializer.instance.save()
-            print(serializer.data["media"])
 
             return Response(serializer.data, status=HTTP_200_OK)
         else:
             return Response(status=HTTP_400_BAD_REQUEST)
 
 
+@api_view(http_method_names=("GET", "POST"))
+def hsm_view(request):
+    if request.method == "GET":
+        instances = HighStructuredMessage.objects.all()
+        serializer = HighStructuredMessageSerializer(instance=instances, many=True)
+        return Response(data=serializer.data, status=HTTP_200_OK)
+
+
+@api_view(http_method_names=("POST",))
+def send_hsm_messages(request):
+    data = request.data
+    status_code = send_whatsapp_hsm_message(data)
+
+    return Response(status=status_code)
+
+
 @api_view(["POST"])
 def send_message(request):
     data = request.data
-    print(f"DATA {data}")
-    message = data["message"]
+
     serialized = MessageSerializer(data=data)
     if serialized.is_valid(raise_exception=True):
-        print(f"SERIALIZER {serialized.data}")
-    print(f"MESSAGE CONTENT {message}")
-    status_code = send_whatsapp_message(message)
+        message_instance = serialized.save()
+        context = data.get("context", False)
+        if context:
+            context = data.get("context", False)
+        status_code, message_data = send_whatsapp_message(
+            message_instance.body, data["phone_number"], context
+        )
+        message_instance.whatsapp_message_id = message_data["messages"][0]["id"]
+
+        message_instance.save()
     return Response(status=status_code, data=serialized.data)
 
 
@@ -81,7 +130,7 @@ def webhook(request):
 
     if request.method == "POST":
         data = str(request.body)
-        WhatsAppPOST.objects.create(body=data)
+        messageTeste = WhatsAppPOST.objects.create(body=data)
         notification_data = json.loads(request.body.decode())
 
         notification_entry = notification_data["entry"][0]
@@ -97,33 +146,35 @@ def webhook(request):
                 message = Message.objects.get(
                     whatsapp_message_id=message_statuses["id"]
                 )
-                message.save()
                 message.status = message_statuses["status"]
                 customer_phone_number = message_statuses["recipient_id"]
 
                 channel_layer = get_channel_layer()
                 channel_name = f"waent_{customer_phone_number}"
 
-                json_message = json.dumps(
-                    {
-                        "id": message.id,
-                        "body": message.body,
-                        "status": message.status,
-                        "send_by_operator": message.send_by_operator,
-                        "created_at": str(message.created_at),
-                        "type": message.type,
-                        "contacts": "[27]",
-                        "media_url": request.build_absolute_uri(message.media.url)
-                        if message.type in allowed_media_types
-                        else "",
-                    }
-                )
-                print(json_message)
+                json_message = {
+                    "id": message.id,
+                    "body": message.body,
+                    "status": message.status,
+                    "send_by_operator": message.send_by_operator,
+                    "created_at": str(message.created_at),
+                    "type": message.type,
+                    "contacts": "[27]",
+                    "media_url": request.build_absolute_uri(message.media.url)
+                    if message.type in allowed_media_types
+                    else "",
+                }
+
+                if message.context:
+                    json_message["context"] = message.context.id
+
+                str_json_message = json.dumps(json_message)
+                message.save()
                 async_to_sync(channel_layer.group_send)(
                     channel_name,
                     {
                         "type": "notification",
-                        "message": json_message,
+                        "message": str_json_message,
                     },
                 )
 
@@ -131,6 +182,16 @@ def webhook(request):
                 print("FAZ NADA")
 
         else:
+            contact_is_already_created = Contact.objects.filter(
+                phone=notification_changes_value["contacts"][0]["wa_id"]
+            ).exists()
+
+            if contact_is_already_created == False:
+                Contact.objects.create(
+                    name=notification_changes_value["contacts"][0]["profile"]["name"],
+                    phone=notification_changes_value["contacts"][0]["wa_id"],
+                ).save()
+
             channel_layer = get_channel_layer()
 
             received_message = notification_changes_value["messages"][0]
@@ -144,12 +205,28 @@ def webhook(request):
                 phone_number = notification_changes_value["contacts"][0]["wa_id"]
                 channel_name = f"waent_{phone_number}"
 
+                has_context = True if "context" in received_message else False
+                if has_context:
+                    context_whatsapp_message_id = received_message["context"]["id"]
+                    has_context = Message.objects.filter(
+                        whatsapp_message_id=context_whatsapp_message_id
+                    ).exists()
+
+                    if has_context:
+                        context_message_instance = Message.objects.filter(
+                            whatsapp_message_id=context_whatsapp_message_id
+                        ).first()
+
                 if received_message["type"] == "text":
                     message = Message.objects.create(
                         whatsapp_message_id=received_message["id"],
                         body=received_message["text"]["body"],
                         type=received_message["type"],
+                        origin_identifier=phone_number,
                     )
+
+                    if has_context:
+                        message.context = context_message_instance
                     json_message = json.dumps(
                         {
                             "id": message.id,
@@ -158,6 +235,9 @@ def webhook(request):
                             "status": message.status,
                             "created_at": str(message.created_at),
                             "type": message.type,
+                            "context": context_message_instance.id
+                            if has_context
+                            else "",
                         }
                     )
                     message.save()
@@ -167,6 +247,7 @@ def webhook(request):
                     message = Message.objects.create(
                         whatsapp_message_id=received_message["id"],
                         type=received_message["type"],
+                        origin_identifier=phone_number,
                     )
 
                     contact_list = []
@@ -196,7 +277,7 @@ def webhook(request):
                                 }
                             )
                             contact.save()
-                            message.contacts.aadd(contact)
+                            message.contacts.add(contact)
 
                     print(f"CONTACT LIST {contact_list}")
 
@@ -218,6 +299,7 @@ def webhook(request):
                         whatsapp_message_id=received_message["id"],
                         media_id=received_message[current_media_type]["id"],
                         type=received_message["type"],
+                        origin_identifier=phone_number,
                     )
                     media_response = get_media_url(message.media_id)
 
@@ -251,12 +333,15 @@ def webhook(request):
 
                     message.save()
 
-                async_to_sync(channel_layer.group_send)(
-                    channel_name,
-                    {
-                        "type": "chat_message",
-                        "message": json_message,
-                    },
-                )
+                try:
+                    async_to_sync(channel_layer.group_send)(
+                        channel_name,
+                        {
+                            "type": "chat_message",
+                            "message": json_message,
+                        },
+                    )
+                except:
+                    print("Deu erro")
 
         return Response(status=HTTP_200_OK)
