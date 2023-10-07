@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from .models import Attendance, Buttons, Contact, HighStructuredMessage, Message
+from .models import Attendance, Buttons, Contact, HighStructuredMessage, Message, Sector
+
+
+class SectorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sector
+        fields = (
+            "id",
+            "name",
+        )
 
 
 class ButtonSerializer(serializers.ModelSerializer):
@@ -73,4 +82,5 @@ class AttendanceSerializer(serializers.ModelSerializer):
             "created_at",
             "is_closed",
             "closed_at",
+            "sector",
         )

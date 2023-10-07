@@ -6,7 +6,7 @@ from PIL import Image
 def binary_to_webp(binary):
     image = Image.open(BytesIO(binary))
 
-    # Converter a imagem para o formato WebP
+    # Convert image to WebP format
     output = BytesIO()
     image.save(output, "WEBP")
     output.seek(0)

@@ -31,7 +31,6 @@ class ChatConsumer(WebsocketConsumer):
         message = text_data_json["message"]
         sent_by_operator = text_data_json["send_by_operator"]
         if sent_by_operator == False:
-            print(f"ESSA È A MENSAGEM {message}")
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {

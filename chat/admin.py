@@ -19,6 +19,7 @@ class AttendanceAdmin(admin.ModelAdmin):
         "customer_name",
         "is_closed",
         "closed_at",
+        "sector",
     )
 
 

@@ -184,3 +184,9 @@ mimetypes.add_type("image/webp", ".webp")
 #         "rest_framework.parsers.MultiPartParser",
 #     )
 # }
+
+
+# REST_FRAMEWORK = {
+#     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+#     "PAGE_SIZE": 100,
+# }
