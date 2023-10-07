@@ -15,7 +15,7 @@ headers = {
 }
 
 DEBUG = True
-NGROK_URL = "https://9ce1-177-152-151-189.ngrok-free.app/"
+NGROK_URL = os.getenv("NGROK_URL")
 
 
 def save_media_message():

@@ -86,7 +86,12 @@ class MidiaUpload(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, format=None):
-        serializer = MessageSerializer(data=request.data, context={"request": request})
+        serializer = MessageSerializer(
+            data=request.data,
+            context={
+                "request": request,
+            },
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             data, status_code = send_media_messages(
@@ -138,7 +143,9 @@ def send_message(request):
             data["body"], data["phone_number"], context
         )
         whatsapp_message_id = message_data["messages"][0]["id"]
-        message_instance = serialized.save(whatsapp_message_id=whatsapp_message_id)
+        message_instance = serialized.save(
+            whatsapp_message_id=whatsapp_message_id,
+        )
         message_instance.save()
     return Response(status=status_code, data=serialized.data)
 
@@ -165,10 +172,9 @@ def webhook(request):
     if request.method == "POST":
         data = str(request.body)
         WhatsAppPOST.objects.create(body=data)
+
         notification_data = json.loads(request.body.decode())
-
         notification_entry = notification_data["entry"][0]
-
         notification_changes_value = notification_entry["changes"][0]["value"]
 
         if "statuses" in notification_changes_value:
@@ -234,6 +240,7 @@ def webhook(request):
                 ).exists()
 
             else:
+                received_message = notification_changes_value["messages"][0]
                 phone_number = notification_changes_value["contacts"][0]["wa_id"]
                 channel_name = f"waent_{phone_number}"
 
@@ -282,7 +289,6 @@ def webhook(request):
                     )
 
                     contact_list = []
-                    teste = received_message["contacts"]
 
                     for received_contact in received_message["contacts"]:
                         has_first_name = received_contact["name"].get(
@@ -360,7 +366,7 @@ def webhook(request):
 
                     message.save()
                     print(f"_____----> {json_message}")
-                try:
+                    channel_layer = get_channel_layer()
                     async_to_sync(channel_layer.group_send)(
                         channel_name,
                         {
@@ -368,7 +374,5 @@ def webhook(request):
                             "message": json_message,
                         },
                     )
-                except:
-                    print("Deu erro")
 
         return Response(status=HTTP_200_OK)
