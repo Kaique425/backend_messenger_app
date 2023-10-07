@@ -1,11 +1,13 @@
 # Backend_messenger_app
- This is a backend messenger app integrated with WhatsApp Cloud API.
+ This is a backend messenger app integrated with WhatsApp Oficial Cloud API.
 
- Front-end is here:
-![image](https://github.com/Kaique425/backend_messenger_app/assets/77831558/8a73094b-c391-4554-adc7-5df4fb4c06c5)
+# Tech's:
+ - Django
+ - Django Rest FrameWork
+ - Django Channels
+ - Redis
 
-
-Actually is possible:
+# Actually is possible:
 - Send WhatsApp messages
 - Receive WhatsApp messages
 - Send Images
