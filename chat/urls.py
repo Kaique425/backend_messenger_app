@@ -3,8 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.lobby, name="lobby"),
-    path("webhook", views.webhook, name="webhook"),
+    path("webhook", views.Webhook.as_view(), name="webhook"),
     path("messages", views.send_message, name="send_message"),
     path("messages/midia", views.MidiaUpload.as_view(), name="midia_upload"),
     path("hsms", views.hsm_view, name="hsm"),

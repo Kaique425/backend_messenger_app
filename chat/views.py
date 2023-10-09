@@ -1,13 +1,11 @@
 import json
-from datetime import datetime
 
-import requests
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404, render
-from rest_framework.decorators import api_view, parser_classes
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -86,12 +84,7 @@ class MidiaUpload(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, format=None):
-        serializer = MessageSerializer(
-            data=request.data,
-            context={
-                "request": request,
-            },
-        )
+        serializer = MessageSerializer(data=request.data, context={"request": request})
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             data, status_code = send_media_messages(
@@ -146,35 +139,30 @@ def send_message(request):
         message_instance = serialized.save(
             whatsapp_message_id=whatsapp_message_id,
         )
+
         message_instance.save()
     return Response(status=status_code, data=serialized.data)
 
 
-def lobby(request):
-    messages = Message.objects.all()
-    message_tests = WhatsAppPOST.objects.all()
-    context = {"messages": messages, "webhook_messages": message_tests}
-
-    return render(request, "chat/lobby.html", context)
-
-
-@api_view(["GET", "POST"])
-def webhook(request):
+class Webhook(APIView):
+    channel_layer = get_channel_layer()
     allowed_media_types = getattr(settings, "ALLOWED_MEDIA_TYPES")
-    my_token = "teste"
-    if request.method == "GET":
+
+    def get(self, request):
+        my_token = "teste"
         params = request.GET
         hub_challenge = params["hub.challenge"]
         hub_verify_token = params["hub.verify_token"]
         if my_token == hub_verify_token:
             return Response(int(hub_challenge), status=HTTP_200_OK)
 
-    if request.method == "POST":
+    def post(self, request):
         data = str(request.body)
         WhatsAppPOST.objects.create(body=data)
-
         notification_data = json.loads(request.body.decode())
+
         notification_entry = notification_data["entry"][0]
+
         notification_changes_value = notification_entry["changes"][0]["value"]
 
         if "statuses" in notification_changes_value:
@@ -189,7 +177,6 @@ def webhook(request):
                 message.status = message_statuses["status"]
                 customer_phone_number = message_statuses["recipient_id"]
 
-                channel_layer = get_channel_layer()
                 channel_name = f"waent_{customer_phone_number}"
 
                 json_message = {
@@ -201,7 +188,7 @@ def webhook(request):
                     "type": message.type,
                     "contacts": "[27]",
                     "media_url": request.build_absolute_uri(message.media.url)
-                    if message.type in allowed_media_types
+                    if message.type in self.allowed_media_types
                     else "",
                 }
 
@@ -210,7 +197,7 @@ def webhook(request):
 
                 str_json_message = json.dumps(json_message)
                 message.save()
-                async_to_sync(channel_layer.group_send)(
+                async_to_sync(self.channel_layer.group_send)(
                     channel_name,
                     {
                         "type": "notification",
@@ -232,15 +219,14 @@ def webhook(request):
                     phone=notification_changes_value["contacts"][0]["wa_id"],
                 ).save()
 
-                channel_layer = get_channel_layer()
-
-                received_message = notification_changes_value["messages"][0]
-                message_exists = Message.objects.filter(
-                    whatsapp_message_id=received_message["id"]
-                ).exists()
+            received_message = notification_changes_value["messages"][0]
+            message_exists = Message.objects.filter(
+                whatsapp_message_id=received_message["id"]
+            ).exists()
+            if message_exists:
+                print(f"JÀ EXISTE")
 
             else:
-                received_message = notification_changes_value["messages"][0]
                 phone_number = notification_changes_value["contacts"][0]["wa_id"]
                 channel_name = f"waent_{phone_number}"
 
@@ -299,11 +285,16 @@ def webhook(request):
 
                         else:
                             contact_name = received_contact["name"]["first_name"]
-                            contact = Contact.objects.create(
-                                name=contact_name,
-                                phone=received_contact["phones"][0]["phone"],
-                                type=received_contact["phones"][0]["type"],
-                            )
+                            contact_already_exists = Contact.objects.filter(
+                                phone=received_contact["phones"][0]["phone"]
+                            ).exists()
+
+                            if contact_already_exists != True:
+                                contact = Contact.objects.create(
+                                    name=contact_name,
+                                    phone=received_contact["phones"][0]["phone"],
+                                    type=received_contact["phones"][0]["type"],
+                                )
                             contact_list.append(
                                 {
                                     "name": contact.name,
@@ -326,7 +317,7 @@ def webhook(request):
                         }
                     )
 
-                elif received_message["type"] in allowed_media_types:
+                elif received_message["type"] in self.allowed_media_types:
                     current_media_type = received_message["type"]
                     message = Message.objects.create(
                         whatsapp_message_id=received_message["id"],
@@ -365,14 +356,15 @@ def webhook(request):
                     )
 
                     message.save()
-                    print(f"_____----> {json_message}")
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.group_send)(
+                try:
+                    async_to_sync(self.channel_layer.group_send)(
                         channel_name,
                         {
                             "type": "chat_message",
                             "message": json_message,
                         },
                     )
+                except:
+                    print("Deu erro")
 
         return Response(status=HTTP_200_OK)

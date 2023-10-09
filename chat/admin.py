@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     Attendance,
-    Buttons,
+    Button,
     Contact,
     HighStructuredMessage,
     Message,
@@ -23,12 +23,17 @@ class AttendanceAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(Buttons)
-class ButtonsAdmin(admin.ModelAdmin):
+@admin.register(Button)
+class ButtonAdmin(admin.ModelAdmin):
     fields = ("body",)
 
 
 @admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    fields = ("name", "phone", "type")
+
+
+@admin.register(WhatsAppPOST)
 class WhatsAppPOSTAdmin(admin.ModelAdmin):
     fields = ("name", "phone", "type")
 
@@ -49,11 +54,6 @@ class MessageAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(WhatsAppPOST)
-class WhatsAppPOSTAdmin(admin.ModelAdmin):
-    fields = ("body",)
-
-
 @admin.register(HighStructuredMessage)
 class HighStructuredMessageAdmin(admin.ModelAdmin):
     fields = (
@@ -61,7 +61,7 @@ class HighStructuredMessageAdmin(admin.ModelAdmin):
         "body",
         "header",
         "footer",
-        "buttons",
+        "button",
         "body_variables_quantity",
         "header_variables_quantity",
         "language_code",

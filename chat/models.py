@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -11,8 +11,11 @@ class Sector(models.Model):
         return self.name
 
 
-class Buttons(models.Model):
+class Button(models.Model):
     body = models.CharField(max_length=96)
+
+    def __str__(self):
+        return f"{self.id} - {self.body}"
 
 
 class HighStructuredMessage(models.Model):
@@ -24,7 +27,7 @@ class HighStructuredMessage(models.Model):
     )
     header = models.CharField(max_length=256, null=True, blank=True)
     footer = models.CharField(max_length=256, null=True, blank=True)
-    buttons = models.ManyToManyField(to=Buttons)
+    buttons = models.ManyToManyField(to=Button)
     header_variables_quantity = models.IntegerField(default=0)
     body_variables_quantity = models.IntegerField(default=0)
     language_code = models.CharField(max_length=5, blank=True)
