@@ -1,6 +1,13 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import SimpleRouter
 
 from . import views
+
+api_router = SimpleRouter()
+
+api_router.register("sectors", views.SectorViewSet)
+
+print(api_router.urls)
 
 urlpatterns = [
     path("webhook", views.Webhook.as_view(), name="webhook"),
@@ -8,22 +15,6 @@ urlpatterns = [
     path("messages/midia", views.MidiaUpload.as_view(), name="midia_upload"),
     path("hsms", views.hsm_view, name="hsm"),
     path("messages/hsm", views.send_hsm_messages, name="send_hsm"),
-    path(
-        "sectors",
-        views.SectorViewSet.as_view({"get": "list", "post": "create"}),
-        name="sectors_view",
-    ),
-    path(
-        "sectors/<int:pk>",
-        views.SectorViewSet.as_view(
-            {
-                "get": "retrieve",
-                "patch": "partial_update",
-                "delete": "destroy",
-            }
-        ),
-        name="sectors_view",
-    ),
     path(
         "attendances",
         views.AttendanceListAPIView.as_view(),
@@ -39,4 +30,5 @@ urlpatterns = [
         views.AttendanceDetailAPIView.as_view(),
         name="attendance_detail",
     ),
+    path("", include(api_router.urls)),
 ]

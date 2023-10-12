@@ -35,7 +35,7 @@ class ContactAdmin(admin.ModelAdmin):
 
 @admin.register(WhatsAppPOST)
 class WhatsAppPOSTAdmin(admin.ModelAdmin):
-    fields = ("name", "phone", "type")
+    fields = ("body",)
 
 
 @admin.register(Message)

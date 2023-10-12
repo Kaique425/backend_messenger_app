@@ -55,7 +55,9 @@ class Attendance(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_closed = models.BooleanField(default=False)
     closed_at = models.DateTimeField(null=True, blank=True)
-    sector = models.ForeignKey(Sector, on_delete=models.CASCADE, blank=True, null=True)
+    sector = models.ForeignKey(
+        Sector, on_delete=models.DO_NOTHING, blank=True, null=True
+    )
 
     def finish_attendance(self):
         self.is_close = True
