@@ -23,6 +23,7 @@ def save_media_message():
 
 
 def send_media_messages(file, caption, phone_number):
+    print(f"File -----> {file}")
     new_file_link = file.replace("http://localhost:8000/", NGROK_URL)
     json = {
         "messaging_product": "whatsapp",
@@ -47,7 +48,7 @@ def get_media_url(media_id):
         media_url = data["url"]
 
         media_response = requests.get(media_url, headers=headers)
-
+        print(f"Media URL ----> {media_response}")
         return media_response
     except:
         print(f"Error status code {status_code}")

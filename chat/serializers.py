@@ -9,6 +9,8 @@ class SectorSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "created_at",
+            "updated_at",
         )
 
 
@@ -17,7 +19,12 @@ class ButtonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Button
-        fields = ["id", "body"]
+        fields = [
+            "id",
+            "body",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class HighStructuredMessageSerializer(serializers.ModelSerializer):
@@ -34,6 +41,8 @@ class HighStructuredMessageSerializer(serializers.ModelSerializer):
             "buttons",
             "body_variables_quantity",
             "header_variables_quantity",
+            "created_at",
+            "updated_at",
             "language_code",
         ]
 
@@ -45,9 +54,9 @@ class MessageSerializer(serializers.ModelSerializer):
     media_url = serializers.FileField(
         source="media", max_length=None, use_url=True, required=False
     )
-    contacts = serializers.PrimaryKeyRelatedField(
-        allow_empty=True, required=False, many=True, queryset=Contact.objects.all()
-    )
+    # contacts = serializers.PrimaryKeyRelatedField(
+    #     allow_empty=True, required=False, many=True, queryset=Contact.objects.all()
+    # )
     context = serializers.PrimaryKeyRelatedField(
         allow_null=True, required=False, queryset=Message.objects.all()
     )
@@ -65,7 +74,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "type",
             "media_id",
             "media_url",
-            "contacts",
+            # "contacts",
             "context",
             "origin_identifier",
             "attendance",

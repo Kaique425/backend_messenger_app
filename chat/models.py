@@ -6,6 +6,8 @@ from django.utils import timezone
 
 class Sector(models.Model):
     name = models.CharField(max_length=54)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -13,6 +15,8 @@ class Sector(models.Model):
 
 class Button(models.Model):
     body = models.CharField(max_length=96)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.id} - {self.body}"
@@ -31,6 +35,8 @@ class HighStructuredMessage(models.Model):
     header_variables_quantity = models.IntegerField(default=0)
     body_variables_quantity = models.IntegerField(default=0)
     language_code = models.CharField(max_length=5, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -44,6 +50,8 @@ class Contact(models.Model):
     name = models.CharField(max_length=96, blank=True, null=True)
     phone = models.CharField(max_length=20, unique=True)
     type = models.CharField(max_length=20, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -55,6 +63,7 @@ class Attendance(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_closed = models.BooleanField(default=False)
     closed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
     sector = models.ForeignKey(
         Sector, on_delete=models.DO_NOTHING, blank=True, null=True
     )
@@ -69,6 +78,15 @@ class Attendance(models.Model):
 
 
 class Message(models.Model):
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=[
+                    "attendance",
+                ]
+            )
+        ]
+
     whatsapp_message_id = models.CharField(max_length=264, default="")
     send_by_operator = models.BooleanField(default=False)
     body = models.TextField(blank=True, null=True)

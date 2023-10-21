@@ -86,7 +86,11 @@ class MidiaUpload(APIView):
     def post(self, request, format=None):
         serializer = MessageSerializer(data=request.data, context={"request": request})
         if serializer.is_valid(raise_exception=True):
+            media_file = request.data.get("media_url")
+            if media_file:
+                serializer.validated_data["media"] = media_file
             serializer.save()
+
             data, status_code = send_media_messages(
                 file=serializer.data["media_url"],
                 caption=serializer.data["body"],
@@ -110,7 +114,7 @@ class MidiaUpload(APIView):
 @api_view(http_method_names=("GET", "POST"))
 def hsm_view(request):
     if request.method == "GET":
-        instances = HighStructuredMessage.objects.all()
+        instances = HighStructuredMessage.objects.prefetch_related("buttons")
         serializer = HighStructuredMessageSerializer(instance=instances, many=True)
         return Response(data=serializer.data, status=HTTP_200_OK)
 
@@ -167,13 +171,10 @@ class Webhook(APIView):
 
         if "statuses" in notification_changes_value:
             message_statuses = notification_changes_value.get("statuses", [])[0]
-            message_exists = Message.objects.filter(
+            message = Message.objects.filter(
                 whatsapp_message_id=message_statuses["id"]
-            ).exists()
-            if message_exists:
-                message = Message.objects.get(
-                    whatsapp_message_id=message_statuses["id"]
-                )
+            ).first()
+            if message:
                 message.status = message_statuses["status"]
                 customer_phone_number = message_statuses["recipient_id"]
 
