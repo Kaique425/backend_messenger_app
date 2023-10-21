@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -31,7 +31,7 @@ class HighStructuredMessage(models.Model):
     )
     header = models.CharField(max_length=256, null=True, blank=True)
     footer = models.CharField(max_length=256, null=True, blank=True)
-    buttons = models.ManyToManyField(to=Button)
+    buttons = models.ManyToManyField(to=Button, blank=True)
     header_variables_quantity = models.IntegerField(default=0)
     body_variables_quantity = models.IntegerField(default=0)
     language_code = models.CharField(max_length=5, blank=True)
@@ -43,7 +43,7 @@ class HighStructuredMessage(models.Model):
 
 
 class WhatsAppPOST(models.Model):
-    body = models.CharField(max_length=564)
+    body = models.CharField(max_length=4000)
 
 
 class Contact(models.Model):
@@ -79,6 +79,9 @@ class Attendance(models.Model):
 
 class Message(models.Model):
     class Meta:
+        ordering = [
+            "created_at",
+        ]
         indexes = [
             models.Index(
                 fields=[
@@ -89,7 +92,7 @@ class Message(models.Model):
 
     whatsapp_message_id = models.CharField(max_length=264, default="")
     send_by_operator = models.BooleanField(default=False)
-    body = models.TextField(blank=True, null=True)
+    body = models.TextField(max_length=4096, blank=True, null=True)
     status = models.CharField(
         max_length=20,
     )
@@ -114,18 +117,19 @@ class Message(models.Model):
         return f"ID:{self.id} --> {self.body} enviada em {self.created_at}"
 
 
+@transaction.atomic
 @receiver(pre_save, sender=Message)
 def link_message_to_last_open_attendance(sender, instance, **kwargs):
     phone_number = instance.origin_identifier
     last_open_attendance = Attendance.objects.filter(
         customer_phone_number=phone_number, is_closed=False
-    ).last()
+    ).latest("created_at")
 
     if last_open_attendance is not None:
         instance.attendance = last_open_attendance
 
     else:
-        contact_info = Contact.objects.filter(phone=phone_number).first()
+        contact_info = Contact.objects.get(phone=phone_number)
         print(f"CONTACT INFO {contact_info}")
         Attendance.objects.create(
             customer_phone_number=contact_info.phone,

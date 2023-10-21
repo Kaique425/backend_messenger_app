@@ -73,7 +73,7 @@ class AttendanceDetailAPIView(APIView):
 
 class HistoryMessageListAPIView(APIView):
     def get(self, request, id):
-        messages = Message.objects.filter(attendance=id)
+        messages = Message.objects.filter(attendance=id).prefetch_related("contacts")
         serializer = MessageSerializer(
             instance=messages, many=True, context={"request": request}
         )

@@ -1,6 +1,9 @@
 import mimetypes
 import os
 
+from dotenv import load_dotenv
+
+enviroment = load_dotenv()
 """
 Django settings for core project.
 
@@ -99,8 +102,15 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": os.getenv("DB_ENGINE"),
+        "NAME": os.getenv("POSTGRES_DB"),  # Nome do seu banco de dados
+        "USER": os.getenv("POSTGRES_USER"),  # Nome de usuário do PostgreSQL
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),  # Senha do PostgreSQL
+        "HOST": os.getenv(
+            "POSTGRES_HOST"
+        ),  # Endereço do host (neste caso, seu contêiner Docker)
+        "PORT": os.getenv("POSTGRES_PORT"),  # Porta padrão do PostgreSQL
+        "CONN_MAX_AGE": 60,
     }
 }
 

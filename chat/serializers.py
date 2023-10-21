@@ -54,9 +54,9 @@ class MessageSerializer(serializers.ModelSerializer):
     media_url = serializers.FileField(
         source="media", max_length=None, use_url=True, required=False
     )
-    # contacts = serializers.PrimaryKeyRelatedField(
-    #     allow_empty=True, required=False, many=True, queryset=Contact.objects.all()
-    # )
+    contacts = serializers.PrimaryKeyRelatedField(
+        allow_empty=True, required=False, many=True, queryset=Contact.objects.all()
+    )
     context = serializers.PrimaryKeyRelatedField(
         allow_null=True, required=False, queryset=Message.objects.all()
     )
@@ -74,7 +74,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "type",
             "media_id",
             "media_url",
-            # "contacts",
+            "contacts",
             "context",
             "origin_identifier",
             "attendance",

@@ -25,11 +25,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(Button)
 class ButtonAdmin(admin.ModelAdmin):
-    fields = (
-        "body",
-        "created_at",
-        "update_at",
-    )
+    fields = ("body",)
 
 
 @admin.register(Contact)
@@ -71,10 +67,8 @@ class HighStructuredMessageAdmin(admin.ModelAdmin):
         "body",
         "header",
         "footer",
-        "button",
+        "buttons",
         "body_variables_quantity",
         "header_variables_quantity",
-        "created_at",
-        "update_at",
         "language_code",
     )
