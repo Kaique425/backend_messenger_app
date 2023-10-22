@@ -123,7 +123,7 @@ def link_message_to_last_open_attendance(sender, instance, **kwargs):
     phone_number = instance.origin_identifier
     last_open_attendance = Attendance.objects.filter(
         customer_phone_number=phone_number, is_closed=False
-    ).latest("created_at")
+    ).first()
 
     if last_open_attendance is not None:
         instance.attendance = last_open_attendance

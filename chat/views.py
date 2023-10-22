@@ -139,7 +139,11 @@ def send_message(request):
         status_code, message_data = send_whatsapp_message(
             data["body"], data["phone_number"], context
         )
-        whatsapp_message_id = message_data["messages"][0]["id"]
+        print(f"STATUS ==> {status_code} CONTENT {message_data}")
+        try:
+            whatsapp_message_id = message_data["messages"][0]["id"]
+        except:
+            whatsapp_message_id = ""
         message_instance = serialized.save(
             whatsapp_message_id=whatsapp_message_id,
         )

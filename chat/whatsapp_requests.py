@@ -1,9 +1,10 @@
 import os
 
 import requests
+from django.core.exceptions import ObjectDoesNotExist
 from dotenv import load_dotenv
 
-from .models import Message
+from .models import Message, WhatsAppPOST
 
 enviroment = load_dotenv()
 
@@ -85,7 +86,7 @@ def send_whatsapp_hsm_message(data):
 
 
 def send_whatsapp_message(message, phone_number, replayed_message_id=None):
-    json = {
+    json_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
         "to": phone_number,
@@ -94,15 +95,17 @@ def send_whatsapp_message(message, phone_number, replayed_message_id=None):
     }
     if replayed_message_id:
         try:
-            context_instance = Message.objects.get(id=replayed_message_id)
-            context_object = {
-                "message_id": context_instance.whatsapp_message_id,
+            context_instance = Message.objects.values("whatsapp_message_id").get(
+                id=replayed_message_id
+            )
+            json_data["context"] = {
+                "message_id": context_instance["whatsapp_message_id"],
             }
-            json["context"] = context_object
-        except:
+        except ObjectDoesNotExist:
             context_instance = False
 
-    response = requests.post(send_message_url, headers=headers, json=json)
-    message_data = response.json()
+    with requests.post(send_message_url, headers=headers, json=json_data) as response:
+        message_data = response.json()
+        WhatsAppPOST.objects.create(body=response)
 
     return response.status_code, message_data
