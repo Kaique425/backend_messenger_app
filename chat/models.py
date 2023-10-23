@@ -119,7 +119,7 @@ class Message(models.Model):
 
 @transaction.atomic
 @receiver(pre_save, sender=Message)
-def link_message_to_last_open_attendance(sender, instance, **kwargs):
+def link_message_to_last_open_attendance_or_create(sender, instance, **kwargs):
     phone_number = instance.origin_identifier
     last_open_attendance = Attendance.objects.filter(
         customer_phone_number=phone_number, is_closed=False
