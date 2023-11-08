@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "chat",
+    "user",
     "debug_toolbar",
     "rest_framework",
     "corsheaders",
@@ -186,9 +187,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 ALLOWED_MEDIA_TYPES = ["audio", "video", "image", "sticker"]
 
-
 mimetypes.add_type("image/webp", ".webp")
-
 
 # REST_FRAMEWORK = {
 #     "DEFAULT_PARSER_CLASSES": (
@@ -202,6 +201,8 @@ mimetypes.add_type("image/webp", ".webp")
 #     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
 #     "PAGE_SIZE": 100,
 # }
+
+AUTH_USER_MODEL = "user.User"
 
 INTERNAL_IPS = [
     # ...

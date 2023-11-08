@@ -122,9 +122,9 @@ def hsm_view(request):
 @api_view(http_method_names=("POST",))
 def send_hsm_messages(request):
     data = request.data
-    status_code = send_whatsapp_hsm_message(data)
+    status_code, response = send_whatsapp_hsm_message(data)
 
-    return Response(status=status_code)
+    return Response(data=response.json(), status=status_code)
 
 
 @api_view(["POST"])

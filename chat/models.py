@@ -90,7 +90,7 @@ class Message(models.Model):
             )
         ]
 
-    whatsapp_message_id = models.CharField(max_length=264, default="")
+    whatsapp_message_id = models.CharField(max_length=128, default="")
     send_by_operator = models.BooleanField(default=False)
     body = models.TextField(max_length=4096, blank=True, null=True)
     status = models.CharField(
@@ -119,20 +119,20 @@ class Message(models.Model):
 
 @transaction.atomic
 @receiver(pre_save, sender=Message)
-def link_message_to_last_open_attendance_or_create(sender, instance, **kwargs):
+def link_message_to_last_open_attendance(sender, instance, **kwargs):
     phone_number = instance.origin_identifier
-    last_open_attendance = Attendance.objects.filter(
-        customer_phone_number=phone_number, is_closed=False
-    ).first()
-
-    if last_open_attendance is not None:
+    try:
+        last_open_attendance = Attendance.objects.get(
+            customer_phone_number=phone_number, is_closed=False
+        )
         instance.attendance = last_open_attendance
-
-    else:
+        print(f"INSTANCIA --> {instance} FILTERED ATTENDANCE {last_open_attendance}")
+    except Attendance.DoesNotExist:
         contact_info = Contact.objects.get(phone=phone_number)
         print(f"CONTACT INFO {contact_info}")
-        Attendance.objects.create(
+        new_attendance = Attendance.objects.create(
             customer_phone_number=contact_info.phone,
             customer_name=contact_info.name,
         )
-    print(f"INSTANCIA --> {instance} FILTERED ATTENDANCE {last_open_attendance}")
+        instance.attendance = new_attendance
+        print(f"INSTANCIA --> {instance} FILTERED ATTENDANCE {new_attendance}")

@@ -82,7 +82,7 @@ def send_whatsapp_hsm_message(data):
 
     response = requests.post(send_message_url, headers=headers, json=json)
 
-    return response.status_code
+    return response.status_code, response
 
 
 def send_whatsapp_message(message, phone_number, replayed_message_id=None):
