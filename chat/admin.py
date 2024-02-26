@@ -6,6 +6,7 @@ from .models import (
     Contact,
     HighStructuredMessage,
     Message,
+    Sector,
     WhatsAppPOST,
 )
 
@@ -72,3 +73,8 @@ class HighStructuredMessageAdmin(admin.ModelAdmin):
         "header_variables_quantity",
         "language_code",
     )
+
+
+@admin.register(Sector)
+class SectorAdmin(admin.ModelAdmin):
+    fields = ("name",)

@@ -82,6 +82,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
+
+    created_at = serializers.SerializerMethodField("get_created_at")
+
     class Meta:
         model = Attendance
         fields = (
@@ -93,3 +96,6 @@ class AttendanceSerializer(serializers.ModelSerializer):
             "closed_at",
             "sector",
         )
+
+    def get_created_at(self, obj):
+        return obj.created_at.strftime("%d-%m-%Y %H:%M:%S")
