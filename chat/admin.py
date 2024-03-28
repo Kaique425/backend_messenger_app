@@ -7,6 +7,7 @@ from .models import (
     HighStructuredMessage,
     Message,
     Sector,
+    WabaChannel,
     WhatsAppPOST,
 )
 
@@ -15,12 +16,14 @@ from .models import (
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
+    readonly_fields = ["created_at", "updated_at"]
     fields = (
         "customer_phone_number",
         "customer_name",
         "is_closed",
-        "closed_at",
         "sector",
+        "created_at",
+        "updated_at",
     )
 
 
@@ -78,3 +81,16 @@ class HighStructuredMessageAdmin(admin.ModelAdmin):
 @admin.register(Sector)
 class SectorAdmin(admin.ModelAdmin):
     fields = ("name",)
+
+
+@admin.register(WabaChannel)
+class WabaChannelAdmin(admin.ModelAdmin):
+    readonly_fields = ["created_at", "updated_at"]
+    fields = (
+        "channel_name",
+        "default_sector",
+        "channel_phone",
+        "channel_external_id",
+        "created_at",
+        "updated_at",
+    )

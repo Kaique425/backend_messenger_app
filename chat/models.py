@@ -117,6 +117,26 @@ class Message(models.Model):
         return f"ID:{self.id} --> {self.body} enviada em {self.created_at}"
 
 
+class WabaChannel(models.Model):
+    class Meta:
+        ordering = [
+            "created_at",
+        ]
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    channel_name = models.CharField(max_length=64)
+    channel_phone = models.CharField(max_length=13, unique=True)
+    channel_external_id = models.CharField(max_length=15, unique=True)
+    default_sector = models.ForeignKey(
+        Sector, related_name="default_sector", on_delete=models.PROTECT
+    )
+
+    def __str__(self):
+
+        return f"{self.id} - {self.channel_name} - {self.channel_phone}"
+
+
 @transaction.atomic
 @receiver(pre_save, sender=Message)
 def link_message_to_last_open_attendance(sender, instance, **kwargs):

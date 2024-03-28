@@ -76,9 +76,11 @@ def send_whatsapp_hsm_message(data):
         "template": {
             "name": data["hsm_name"],
             "language": {"code": data["code"]},
-            "components": mounteds_components,
         },
     }
+
+    if components:
+        json["template"]["components"] = mounteds_components
 
     response = requests.post(send_message_url, headers=headers, json=json)
 
