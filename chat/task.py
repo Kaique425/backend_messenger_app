@@ -30,7 +30,7 @@ def process_message(notification_data):
             customer_phone_number = message_statuses["recipient_id"]
 
             channel_name = f"waent_{customer_phone_number}"
-
+            # absolute_media_url = os.environ.get("NGROK_URL").strip("/") + media_url
             json_message = {
                 "id": message.id,
                 "body": message.body,
@@ -39,11 +39,11 @@ def process_message(notification_data):
                 "created_at": str(message.created_at),
                 "type": message.type,
                 "contacts": "[27]",
-                "media_url": media_url.replace(
-                    "localhost:5173", os.environ.get("NGROK_URL")
-                )
-                if message.type in allowed_media_types
-                else "",
+                # "media_url": media_url.replace(
+                #     "localhost:5173", os.environ.get("NGROK_URL")
+                # )
+                # if message.type in allowed_media_types
+                # else "",
             }
 
             if message.context:
@@ -67,7 +67,7 @@ def process_message(notification_data):
             phone=notification_changes_value["contacts"][0]["wa_id"]
         ).exists()
 
-        if contact_is_already_created == False:
+        if contact_is_already_created is False:
             Contact.objects.create(
                 name=notification_changes_value["contacts"][0]["profile"]["name"],
                 phone=notification_changes_value["contacts"][0]["wa_id"],
@@ -192,7 +192,9 @@ def process_message(notification_data):
 
                 message.save()
                 media_url = message.media.url
-                print(media_url)
+
+                absolute_media_url = os.environ.get("NGROK_URL").strip("/") + media_url
+
                 json_message = json.dumps(
                     {
                         "id": message.id,
@@ -200,9 +202,7 @@ def process_message(notification_data):
                         "body": message.body if message.body else "",
                         "status": message.status,
                         "media_id": message.media_id,
-                        "media_url": media_url.replace(
-                            "localhost:5173", os.environ.get("NGROK_URL")
-                        ),
+                        "media_url": absolute_media_url,
                         "type": message.type,
                         "created_at": str(message.created_at),
                     }
@@ -219,4 +219,4 @@ def process_message(notification_data):
                 )
             except:
                 print("Deu erro")
-    return print(media_url)
+    return print("Message processed!")
