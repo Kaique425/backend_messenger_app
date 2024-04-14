@@ -19,6 +19,7 @@ from .models import (
     HighStructuredMessage,
     Message,
     Sector,
+    WabaChannel,
     WhatsAppPOST,
 )
 from .serializers import (
@@ -40,6 +41,22 @@ class SectorViewSet(ModelViewSet):
     queryset = Sector.objects.all()
     serializer_class = SectorSerializer
     # pagination_class = PageNumberPagination
+
+
+class ChannelsViewSet(APIView):
+    def get(self, request):
+        channels = WabaChannel.objects.all()
+        channels_list = channels.values(
+            "channel_external_id",
+            "channel_name",
+            "channel_phone",
+            "created_at",
+            "default_sector",
+            "default_sector_id",
+            "id",
+            "updated_at",
+        )
+        return Response(channels_list)
 
 
 class AttendanceListAPIView(APIView):

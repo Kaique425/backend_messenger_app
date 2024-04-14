@@ -30,5 +30,6 @@ urlpatterns = [
         views.AttendanceDetailAPIView.as_view(),
         name="attendance_detail",
     ),
+    path("channels", views.ChannelsViewSet.as_view(), name="waba_channels"),
     path("", include(api_router.urls)),
 ]
