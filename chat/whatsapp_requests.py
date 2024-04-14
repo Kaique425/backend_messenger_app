@@ -58,8 +58,8 @@ def get_media_url(media_id):
 def send_whatsapp_hsm_message(data):
     components = data["components"]
 
+    mounteds_components = []
     for component in components:
-        mounteds_components = []
 
         mountedComponent = {
             "type": component["type"],
@@ -83,7 +83,7 @@ def send_whatsapp_hsm_message(data):
         json["template"]["components"] = mounteds_components
 
     response = requests.post(send_message_url, headers=headers, json=json)
-
+    print(json)
     return response.status_code, response
 
 
