@@ -5,7 +5,10 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.base import ContentFile
+
+from chat.utils import link_message_to_attendance
 
 from .models import Contact, Message
 from .whatsapp_requests import get_media_url
@@ -19,8 +22,9 @@ def process_message(notification_data):
 
     notification_entry = notification_data["entry"][0]
     notification_changes_value = notification_entry["changes"][0]["value"]
-
+    channel_number = notification_changes_value["metadata"]["display_phone_number"]
     if "statuses" in notification_changes_value:
+
         message_statuses = notification_changes_value.get("statuses", [])[0]
         message = Message.objects.filter(
             whatsapp_message_id=message_statuses["id"]
@@ -30,7 +34,10 @@ def process_message(notification_data):
             customer_phone_number = message_statuses["recipient_id"]
 
             channel_name = f"waent_{customer_phone_number}"
-            # absolute_media_url = os.environ.get("NGROK_URL").strip("/") + media_url
+            if message.type in allowed_media_types:
+                absolute_media_url = (
+                    os.environ.get("NGROK_URL").strip("/") + message.media.url
+                )
             json_message = {
                 "id": message.id,
                 "body": message.body,
@@ -39,11 +46,9 @@ def process_message(notification_data):
                 "created_at": str(message.created_at),
                 "type": message.type,
                 "contacts": "[27]",
-                # "media_url": media_url.replace(
-                #     "localhost:5173", os.environ.get("NGROK_URL")
-                # )
-                # if message.type in allowed_media_types
-                # else "",
+                "media_url": absolute_media_url
+                if message.type in allowed_media_types
+                else "",
             }
 
             if message.context:
@@ -60,9 +65,10 @@ def process_message(notification_data):
             )
 
         else:
-            print("FAZ NADA")
+            print("MESSAGE DONT FINDED BY MESSAGE_WA.ID")
 
     else:
+
         contact_is_already_created = Contact.objects.filter(
             phone=notification_changes_value["contacts"][0]["wa_id"]
         ).exists()
@@ -78,7 +84,7 @@ def process_message(notification_data):
             whatsapp_message_id=received_message["id"]
         ).exists()
         if message_exists:
-            print(f"JÀ EXISTE")
+            print("JÀ EXISTE")
 
         else:
             phone_number = notification_changes_value["contacts"][0]["wa_id"]
@@ -117,6 +123,7 @@ def process_message(notification_data):
                         "context": context_message_instance.id if has_context else "",
                     }
                 )
+                link_message_to_attendance(phone_number, message, channel_number)
                 message.save()
 
             elif received_message["type"] == "contacts":
@@ -139,7 +146,7 @@ def process_message(notification_data):
                             phone=received_contact["phones"][0]["phone"]
                         ).exists()
 
-                        if contact_already_exists != True:
+                        if contact_already_exists is not True:
                             contact = Contact.objects.create(
                                 name=contact_name,
                                 phone=received_contact["phones"][0]["phone"],
@@ -166,6 +173,8 @@ def process_message(notification_data):
                         "created_at": str(message.created_at),
                     }
                 )
+                link_message_to_attendance(phone_number, message, channel_number)
+                message.save()
 
             elif received_message["type"] in allowed_media_types:
                 current_media_type = received_message["type"]
@@ -190,7 +199,6 @@ def process_message(notification_data):
                     save=False,
                 )
 
-                message.save()
                 media_url = message.media.url
 
                 absolute_media_url = os.environ.get("NGROK_URL").strip("/") + media_url
@@ -207,7 +215,7 @@ def process_message(notification_data):
                         "created_at": str(message.created_at),
                     }
                 )
-
+                link_message_to_attendance(phone_number, message, channel_number)
                 message.save()
             try:
                 async_to_sync(channel_layer.group_send)(

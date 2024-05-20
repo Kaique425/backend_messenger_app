@@ -82,13 +82,13 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
-
-    created_at = serializers.SerializerMethodField("get_created_at")
-
     class Meta:
         model = Attendance
         fields = (
             "id",
+            "last_message_was_sent_by_operator",
+            "unread_messages_quantity",
+            "attendance_channel",
             "customer_phone_number",
             "customer_name",
             "created_at",
@@ -96,6 +96,3 @@ class AttendanceSerializer(serializers.ModelSerializer):
             "closed_at",
             "sector",
         )
-
-    def get_created_at(self, obj):
-        return obj.created_at.strftime("%d-%m-%Y %H:%M:%S")

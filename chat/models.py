@@ -58,8 +58,11 @@ class Contact(models.Model):
 
 
 class Attendance(models.Model):
+    last_message_was_sent_by_operator = models.BooleanField(null=True, blank=True)
+    unread_messages_quantity = models.IntegerField(default=0)
     customer_phone_number = models.CharField(max_length=13)
     customer_name = models.CharField(max_length=64, blank=True, null=True)
+    attendance_channel = models.CharField(max_length=13, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     is_closed = models.BooleanField(default=False)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -135,24 +138,3 @@ class WabaChannel(models.Model):
     def __str__(self):
 
         return f"{self.id} - {self.channel_name} - {self.channel_phone}"
-
-
-@transaction.atomic
-@receiver(pre_save, sender=Message)
-def link_message_to_last_open_attendance(sender, instance, **kwargs):
-    phone_number = instance.origin_identifier
-    try:
-        last_open_attendance = Attendance.objects.get(
-            customer_phone_number=phone_number, is_closed=False
-        )
-        instance.attendance = last_open_attendance
-        print(f"INSTANCIA --> {instance} FILTERED ATTENDANCE {last_open_attendance}")
-    except Attendance.DoesNotExist:
-        contact_info = Contact.objects.get(phone=phone_number)
-        print(f"CONTACT INFO {contact_info}")
-        new_attendance = Attendance.objects.create(
-            customer_phone_number=contact_info.phone,
-            customer_name=contact_info.name,
-        )
-        instance.attendance = new_attendance
-        print(f"INSTANCIA --> {instance} FILTERED ATTENDANCE {new_attendance}")

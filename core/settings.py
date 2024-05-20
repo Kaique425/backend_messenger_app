@@ -118,7 +118,7 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
+        "LOCATION": "redis://redis:6379/0",
     }
 }
 
@@ -146,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "pt-br"
 
-TIME_ZONE = TIME_ZONE = "America/Sao_Paulo"
+TIME_ZONE = "America/Sao_Paulo"
 
 USE_I18N = True
 

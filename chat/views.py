@@ -1,17 +1,14 @@
 import json
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from django.conf import settings
-from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+
+from chat.utils import link_message_to_attendance
 
 from .models import (
     Attendance,
@@ -30,7 +27,6 @@ from .serializers import (
 )
 from .task import process_message
 from .whatsapp_requests import (
-    get_media_url,
     send_media_messages,
     send_whatsapp_hsm_message,
     send_whatsapp_message,
@@ -108,7 +104,6 @@ class MidiaUpload(APIView):
             if media_file:
                 serializer.validated_data["media"] = media_file
             serializer.save()
-
             data, status_code = send_media_messages(
                 file=serializer.data["media_url"],
                 caption=serializer.data["body"],
@@ -116,13 +111,15 @@ class MidiaUpload(APIView):
             )
 
             serializer.instance.whatsapp_message_id = data["messages"][0].get("id")
+            
+            print(f"========> {data["messages"][0].get("id")}")
 
-            attendance = Attendance.objects.filter(
-                customer_phone_number=request.data["phone_number"]
-            ).first()
-
-            serializer.instance.attendance = attendance
-            serializer.instance.save()
+            message_instance = serializer.instance
+            phone_number = request.data["phone_number"]
+            print(f"Phone => {request.data["phone_number"]} mensagem => {message_instance}")
+            link_message_to_attendance(
+                phone_number,  message_instance, "15550947876"
+            )
 
             return Response(serializer.data, status=HTTP_200_OK)
         else:
@@ -148,26 +145,24 @@ def send_hsm_messages(request):
 @api_view(["POST"])
 def send_message(request):
     data = request.data
-
     serialized = MessageSerializer(data=data)
+    context = data.get("context", False)
+    phone_number = data["phone_number"]
     if serialized.is_valid(raise_exception=True):
-        context = data.get("context", False)
-        if context:
-            context = data.get("context", False)
         status_code, message_data = send_whatsapp_message(
-            data["body"], data["phone_number"], context
+            data["body"], phone_number, context
         )
         print(f"STATUS ==> {status_code} CONTENT {message_data}")
-        try:
-            whatsapp_message_id = message_data["messages"][0]["id"]
-        except:
-            whatsapp_message_id = ""
+
+        whatsapp_message_id = message_data["messages"][0].get("id", "")
+
         message_instance = serialized.save(
             whatsapp_message_id=whatsapp_message_id,
         )
+        link_message_to_attendance(phone_number, message_instance, "15550947876")
 
         message_instance.save()
-    return Response(status=status_code, data=serialized.data)
+    return Response(status=HTTP_201_CREATED, data=serialized.data)
 
 
 class Webhook(APIView):

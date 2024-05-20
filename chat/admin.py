@@ -16,14 +16,18 @@ from .models import (
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "id"]
     fields = (
+        "id",
+        "last_message_was_sent_by_operator",
+        "unread_messages_quantity",
+        "attendance_channel",
         "customer_phone_number",
         "customer_name",
-        "is_closed",
-        "sector",
         "created_at",
-        "updated_at",
+        "is_closed",
+        "closed_at",
+        "sector",
     )
 
 
