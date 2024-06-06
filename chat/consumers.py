@@ -25,17 +25,20 @@ class AttendancePainelConsumer(WebsocketConsumer):
             )
         )
 
-        def attendance_notifiction(self, event):
-            message = event["message"]
+    def disconnect(self, close_code):
+        self.close()
 
-            self.send(
-                text_data=json.dumps(
-                    {
-                        "type": "attendance_update_notification",
-                        "message": message,
-                    }
-                )
+    def attendance_notification(self, event):
+        message = event["message"]
+
+        self.send(
+            text_data=json.dumps(
+                {
+                    "type": "attendance_notification",
+                    "message": message,
+                }
             )
+        )
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -56,6 +59,9 @@ class ChatConsumer(WebsocketConsumer):
                 }
             )
         )
+
+    def disconnect(self, close_code):
+        self.close()
 
     def chat_message(self, event):
         message = event["message"]

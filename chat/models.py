@@ -1,5 +1,5 @@
 from django.db import models, transaction
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -138,3 +138,4 @@ class WabaChannel(models.Model):
     def __str__(self):
 
         return f"{self.id} - {self.channel_name} - {self.channel_phone}"
+
