@@ -6,6 +6,7 @@ from . import views
 api_router = SimpleRouter()
 
 api_router.register("sectors", views.SectorViewSet)
+api_router.register("attendances", views.AttendanceDetailAPIView)
 
 print(api_router.urls)
 
@@ -24,11 +25,6 @@ urlpatterns = [
         "attendances/history/<int:id>",
         views.HistoryMessageListAPIView.as_view(),
         name="history",
-    ),
-    path(
-        "attendances/<int:pk>",
-        views.AttendanceDetailAPIView.as_view(),
-        name="attendance_detail",
     ),
     path("channels", views.ChannelsViewSet.as_view(), name="waba_channels"),
     path("", include(api_router.urls)),

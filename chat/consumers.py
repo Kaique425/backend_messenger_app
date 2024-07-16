@@ -24,9 +24,12 @@ class AttendancePainelConsumer(WebsocketConsumer):
                 }
             )
         )
-
+    
     def disconnect(self, close_code):
+
+        self.channel_layer.group_discard("group_name", self.channel_name)
         self.close()
+        super().disconnect(close_code)
 
     def attendance_notification(self, event):
         message = event["message"]
@@ -61,7 +64,10 @@ class ChatConsumer(WebsocketConsumer):
         )
 
     def disconnect(self, close_code):
+
+        self.channel_layer.group_discard("group_name", self.channel_name)
         self.close()
+        super().disconnect(close_code)
 
     def chat_message(self, event):
         message = event["message"]
@@ -76,6 +82,7 @@ class ChatConsumer(WebsocketConsumer):
 
     def notification(self, event):
         message = event["message"]
+        print(f" MESSAGE NO METODO NOTIFICATION {message}")
         self.send(
             text_data=json.dumps(
                 {

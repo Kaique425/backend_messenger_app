@@ -7,12 +7,22 @@ from .models import (
     HighStructuredMessage,
     Message,
     Sector,
+    Status,
     WabaChannel,
     WhatsAppPOST,
 )
 
-# Register your models here.
 
+# Register your models here.
+@admin.register(Status)
+class StatusAdmin(admin.ModelAdmin):
+    readonly_fields = ("created_at", "updated_at")
+    fields = (
+        "type",
+        "created_at",
+        "updated_at",
+        "status_name",
+    )
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
@@ -38,12 +48,13 @@ class ButtonAdmin(admin.ModelAdmin):
 
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
+    readonly_fields = ("created_at", "updated_at")
     fields = (
         "name",
         "phone",
         "type",
         "created_at",
-        "update_at",
+        "updated_at",
     )
 
 
@@ -54,9 +65,12 @@ class WhatsAppPOSTAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
+    readonly_fields = ["created_at",]
+    ordering = ("-created_at",)
     fields = (
         "body",
         "status",
+        "reaction",
         "send_by_operator",
         "whatsapp_message_id",
         "type",
@@ -65,6 +79,11 @@ class MessageAdmin(admin.ModelAdmin):
         "context",
         "origin_identifier",
         "attendance",
+        "failed_reason",
+        "hsm_footer",
+        "hsm_header",
+        "hsm_buttons",
+        "created_at",
     )
 
 

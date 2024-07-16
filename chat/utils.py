@@ -3,8 +3,15 @@ from io import BytesIO
 from django.core.cache import cache
 from PIL import Image
 
-from chat.models import Attendance, Contact, Sector, WabaChannel
+from chat.models import Attendance, Contact, Message, Sector, WabaChannel
 
+
+def get_message_by_wadi(wadi):
+    message = Message.objects.filter(
+            whatsapp_message_id=wadi
+        ).first()
+    
+    return message
 
 def get_channel_by_number(channel_number):
 
@@ -65,7 +72,12 @@ def link_message_to_attendance(phone_number, message_instance, channel_number):
             attendance_channel=channel_number,
             sector=channel_instance.default_sector,
         )
+        if message_instance.type == "hsm":
+            new_attendance.last_message_was_sent_by_operator = True
+            new_attendance.save()
+            
         message_instance.attendance = new_attendance
+        message_instance.save()
 
 
 def binary_to_webp(binary):

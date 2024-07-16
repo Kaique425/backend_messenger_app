@@ -60,12 +60,13 @@ class MessageSerializer(serializers.ModelSerializer):
     context = serializers.PrimaryKeyRelatedField(
         allow_null=True, required=False, queryset=Message.objects.all()
     )
-
+    whatsapp_message_id = serializers.CharField(required=False)
     class Meta:
         model = Message
         order_by = "created"
         fields = (
             "id",
+            "reaction",
             "whatsapp_message_id",
             "send_by_operator",
             "body",
@@ -78,8 +79,46 @@ class MessageSerializer(serializers.ModelSerializer):
             "context",
             "origin_identifier",
             "attendance",
+            "failed_reason",
         )
+        
 
+class DynamicMessageSerializer(serializers.BaseSerializer):
+    def to_representation(self, instance):
+        if instance.type == 'hsm':
+            serializer = TemplateMessageSerializer(instance, context=self.context)
+        else:
+            serializer = MessageSerializer(instance, context=self.context)
+        return serializer.data
+
+class TemplateMessageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False, read_only=True)
+    send_by_operator = serializers.BooleanField(default=True)
+    status = serializers.CharField(required=False)
+    media_url = serializers.FileField(
+        source="media", max_length=None, use_url=True, required=False
+    )
+    whatsapp_message_id = serializers.CharField(required=False)
+    class Meta:
+        model = Message
+        order_by = "created"
+        fields = (
+            "id",
+            "reaction",
+            "whatsapp_message_id",
+            "send_by_operator",
+            "body",
+            "status",
+            "created_at",
+            "type",
+            "media_id",
+            "media_url",
+            "attendance",
+            "failed_reason",
+            "hsm_footer",
+            "hsm_header",
+            "hsm_buttons"
+        )
 
 class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:

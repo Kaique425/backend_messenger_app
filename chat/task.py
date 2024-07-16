@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 
-from chat.utils import link_message_to_attendance
+from chat.utils import get_message_by_wadi, link_message_to_attendance
 
 from .models import Contact, Message
 from .whatsapp_requests import get_media_url
@@ -24,11 +24,10 @@ def process_message(notification_data):
     notification_changes_value = notification_entry["changes"][0]["value"]
     channel_number = notification_changes_value["metadata"]["display_phone_number"]
     if "statuses" in notification_changes_value:
-
+        print("Passei no STATUSES!!!!")
         message_statuses = notification_changes_value.get("statuses", [])[0]
-        message = Message.objects.filter(
-            whatsapp_message_id=message_statuses["id"]
-        ).first()
+        message = get_message_by_wadi(message_statuses["id"])
+        
         if message:
             message.status = message_statuses["status"]
             customer_phone_number = message_statuses["recipient_id"]
@@ -49,8 +48,13 @@ def process_message(notification_data):
                 "media_url": absolute_media_url
                 if message.type in allowed_media_types
                 else "",
+                "hsm_footer": message.hsm_footer,
+                "hsm_header": message.hsm_header,
+                "hsm_buttons": message.hsm_buttons,
             }
 
+            print(f" JSON MENSSAGE NOTIFICATION ===> {json_message}")
+            
             if message.context:
                 json_message["context"] = message.context.id
 
@@ -217,6 +221,37 @@ def process_message(notification_data):
                 )
                 link_message_to_attendance(phone_number, message, channel_number)
                 message.save()
+                
+                
+            elif received_message["type"] == "reaction":
+                print(f" WAMID {received_message["reaction"]["message_id"]}")
+                message = get_message_by_wadi(received_message["reaction"]["message_id"])
+                
+                reaction = received_message["reaction"].get("emoji", "")
+                
+                if message:
+                    print("TEM MENSAGEM PO!!")
+                    if reaction:
+                        message.reaction = reaction
+                    else:
+                        message.reaction = ""
+                    message.save()
+                    
+                    json_message = json.dumps(
+                        {
+                            "id": message.id,
+                            "reaction":message.reaction,
+                        }
+                    )
+                    
+                    async_to_sync(channel_layer.group_send)(
+                    channel_name,
+                    {
+                        "type": "notification",
+                        "message": json_message,
+                    },
+                )
+                return print("Message processed!")
             try:
                 async_to_sync(channel_layer.group_send)(
                     channel_name,

@@ -24,8 +24,7 @@ def save_media_message():
 
 
 def send_media_messages(file, caption, phone_number):
-    print(f"File -----> {file}")
-    new_file_link = file.replace("http://localhost:8000/", NGROK_URL)
+    new_file_link = file.replace("http://localhost:8000", NGROK_URL)
     json = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -82,9 +81,13 @@ def send_whatsapp_hsm_message(data):
     if components:
         json["template"]["components"] = mounteds_components
 
-    response = requests.post(send_message_url, headers=headers, json=json)
-    print(json)
-    return response.status_code, response
+    
+    with requests.post(send_message_url, headers=headers, json=json) as response:
+        message_data = response.json()
+        WhatsAppPOST.objects.create(body=message_data)
+        
+    print(f"Status: {response.status_code} Content: {response.content} Response: {response}")
+    return response.status_code, message_data
 
 
 def send_whatsapp_message(message, phone_number, replayed_message_id=None):

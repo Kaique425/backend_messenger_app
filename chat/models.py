@@ -1,9 +1,31 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 
+class Status(models.Model):
+    
+    STATUS_CHOICES = (
+        ("Finish", "Finish"),
+        ("Classify", "Classify")
+    )
+    
+    status_name = models.CharField(max_length=96)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    type = models.CharField(max_length=8, choices=STATUS_CHOICES)
+    
+    def save(self, *args, **kwargs):
+        if self.type not in dict(self.STATUS_CHOICES).keys():
+            raise ValueError("The specified status type is not in allowed types!")
+        super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return self.status_name
+    
+    
 class Sector(models.Model):
     name = models.CharField(max_length=54)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -77,7 +99,8 @@ class Attendance(models.Model):
         self.save()
 
     def __str__(self):
-        return f"{self.customer_name} - {self.customer_phone_number} - {self.id}"
+        attendance_status = "FINALIZADO" if self.is_closed else "EM ABERTO"
+        return f"{self.customer_name} - {self.customer_phone_number} - {self.id} {attendance_status}" 
 
 
 class Message(models.Model):
@@ -88,26 +111,23 @@ class Message(models.Model):
         indexes = [
             models.Index(
                 fields=[
-                    "attendance",
+                    "attendance", "created_at",
                 ]
             )
         ]
-
-    whatsapp_message_id = models.CharField(max_length=128, default="")
+    reaction = models.CharField(max_length=16, null=True, blank=True)
+    whatsapp_message_id = models.CharField(max_length=128)
     send_by_operator = models.BooleanField(default=False)
     body = models.TextField(max_length=4096, blank=True, null=True)
-    status = models.CharField(
-        max_length=20,
-    )
+    status = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     type = models.CharField(max_length=24, blank=True, null=True)
     media_id = models.CharField(max_length=255, blank=True, null=True)
     media = models.FileField(upload_to="media", blank=True, null=True)
     contacts = models.ManyToManyField(Contact, "contacts", blank=True)
-    context = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, blank=True, null=True
-    )
+    context = models.ForeignKey("self", on_delete=models.SET_NULL, blank=True, null=True)
     origin_identifier = models.CharField(max_length=13, blank=True, null=True)
+    failed_reason = models.CharField(max_length=128, null=True, blank=True)
     attendance = models.ForeignKey(
         Attendance,
         related_name="messages",
@@ -116,6 +136,10 @@ class Message(models.Model):
         null=True,
     )
 
+    hsm_footer = models.CharField(max_length=60, blank=True, null=True, default="")
+    hsm_header = models.CharField(max_length=60, blank=True, null=True, default="")
+    hsm_buttons = ArrayField(models.CharField(max_length=25), blank=True, null=True, size=8)
+    
     def __str__(self):
         return f"ID:{self.id} --> {self.body} enviada em {self.created_at}"
 
