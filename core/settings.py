@@ -111,7 +111,7 @@ DATABASES = {
             "POSTGRES_HOST"
         ),  # Endereço do host (neste caso, seu contêiner Docker)
         "PORT": os.getenv("POSTGRES_PORT"),  # Porta padrão do PostgreSQL
-        "CONN_MAX_AGE": 60,
+        'CONN_MAX_AGE': 600, #10 minutes
     }
 }
 

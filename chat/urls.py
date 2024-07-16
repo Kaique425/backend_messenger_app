@@ -12,15 +12,10 @@ print(api_router.urls)
 
 urlpatterns = [
     path("webhook", views.Webhook.as_view(), name="webhook"),
-    path("messages", views.send_message, name="send_message"),
+    path("messages", views.SendMessageAPIView.as_view(), name="send_message"),
     path("messages/midia", views.MidiaUpload.as_view(), name="midia_upload"),
-    path("hsms", views.hsm_view, name="hsm"),
-    path("messages/hsm", views.send_hsm_messages, name="send_hsm"),
-    path(
-        "attendances",
-        views.AttendanceListAPIView.as_view(),
-        name="get_messages",
-    ),
+    path("hsms", views.HsmAPIView.as_view(), name="hsm"),
+    path("messages/hsm", views.SendHsmMessageAPIView.as_view(), name="send_hsm"),
     path(
         "attendances/history/<int:id>",
         views.HistoryMessageListAPIView.as_view(),

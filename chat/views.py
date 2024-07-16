@@ -1,6 +1,5 @@
 import json
 
-from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from rest_framework.decorators import action, api_view
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -39,7 +38,7 @@ from .whatsapp_requests import (
 class SectorViewSet(ModelViewSet):
     queryset = Sector.objects.all()
     serializer_class = SectorSerializer
-    # pagination_class = PageNumberPagination
+    
 
 
 class ChannelsViewSet(APIView):
@@ -57,20 +56,12 @@ class ChannelsViewSet(APIView):
         )
         return Response(channels_list)
 
-
-class AttendanceListAPIView(APIView):
-    def get(self, request):
-        attendances = Attendance.objects.filter(is_closed=False)
-        serializer = AttendanceSerializer(instance=attendances, many=True)
-        return Response(status=200, data=serializer.data)
-
-
 class AttendanceDetailAPIView(ModelViewSet):
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = Attendance.objects.filter(is_closed=False)
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(status=200, data=serializer.data)
@@ -92,7 +83,6 @@ class AttendanceDetailAPIView(ModelViewSet):
         attendance.save()
         return Response(status=HTTP_200_OK)
 
-
 class HistoryMessageListAPIView(APIView):
     def get(self, request, id):
         messages = Message.objects.filter(attendance=id).prefetch_related("contacts")
@@ -100,13 +90,16 @@ class HistoryMessageListAPIView(APIView):
             instance=messages, many=True, context={"request": request}
         )
         return Response(data=serializer.data)
+    
 
-@api_view(http_method_names=("GET", "POST"))
-def hsm_view(request):
-    if request.method == "GET":
+class HsmAPIView(APIView):
+    
+    def get(self, request):
         instances = HighStructuredMessage.objects.prefetch_related("buttons")
         serializer = HighStructuredMessageSerializer(instance=instances, many=True)
+        
         return Response(data=serializer.data, status=HTTP_200_OK)
+
 
 class MidiaUpload(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -140,44 +133,57 @@ class MidiaUpload(APIView):
 
 
 
-@api_view(http_method_names=("POST",))
-def send_hsm_messages(request):
-    data = request.data
-    phone_number = data["phone_number"]
-    data["type"] = "hsm"
-    serialized = TemplateMessageSerializer(data=data)
 
-    if serialized.is_valid(raise_exception=True):
-        status_code, message_data = send_whatsapp_hsm_message(data)
-        whatsapp_message_id = message_data["messages"][0].get("id", "")
-        message_instance = serialized.save(
-            whatsapp_message_id=whatsapp_message_id
-        )
-        link_message_to_attendance(phone_number, message_instance, "15550947876")
+class SendHsmMessageAPIView(APIView):
+    
+    def post(self, request):
+        request.data["type"] = "hsm"
+        phone_number = request.data["phone_number"]
+
+        serialized = TemplateMessageSerializer(data=request.data)
+        serialized.is_valid(raise_exception=True)
+
+        try:
+            status_code, message_data = send_whatsapp_hsm_message(request.data)
+            whatsapp_message_id = message_data["messages"][0]["id"]
+            message_instance = serialized.save(
+                whatsapp_message_id=whatsapp_message_id
+            )
+            link_message_to_attendance(phone_number, message_instance, "15550947876")
+
+            return Response(data=message_data, status=status_code)
+        
+        except Exception as e:
+            
+            return Response({"Error": str(e)}, status=HTTP_400_BAD_REQUEST)
 
 
-    return Response(data=message_data, status=status_code)
 
+class SendMessageAPIView(APIView):
+    def post(self, request):
+        serialized = MessageSerializer(data=request.data)
+        serialized.is_valid(raise_exception=True)
+        
+        message_body = request.data["body"]
+        context = request.data.get("context", "")
+        phone_number = request.data["phone_number"]
+        
+        try:
+            status_code, message_data = send_whatsapp_message(
+                message_body, phone_number, context
+            )
+            whatsapp_message_id = message_data["messages"][0]["id"]
 
-@api_view(["POST"])
-def send_message(request):
-    data = request.data
-    context = data.get("context", False)
-    phone_number = data["phone_number"]
-    serialized = MessageSerializer(data=request.data)
-    if serialized.is_valid(raise_exception=True):
+            message_instance = serialized.save(
+                whatsapp_message_id=whatsapp_message_id
+            )
+            link_message_to_attendance(phone_number, message_instance, "15550947876")
+            return Response(status=status_code, data=serialized.data)
+        
+        except Exception as e:
+            
+            return Response({"Error": str(e)}, status=HTTP_400_BAD_REQUEST)
 
-        status_code, message_data = send_whatsapp_message(
-            data["body"], phone_number, context
-        )
-        data["whatsapp_message_id"] = message_data["messages"][0].get("id", "")
-        message_instance = serialized.save(
-            whatsapp_message_id=data["whatsapp_message_id"]
-        )
-        link_message_to_attendance(phone_number, message_instance, "15550947876")
-
-        message_instance.save()
-    return Response(status=status_code, data=serialized.data)
 
 
 class Webhook(APIView):

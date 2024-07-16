@@ -154,3 +154,7 @@ cython_debug/
 #Django
 
 media/media/
+
+# VS CODE
+
+.vscode/*
