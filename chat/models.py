@@ -6,26 +6,23 @@ from django.utils import timezone
 
 
 class Status(models.Model):
-    
-    STATUS_CHOICES = (
-        ("Finish", "Finish"),
-        ("Classify", "Classify")
-    )
-    
+
+    STATUS_CHOICES = (("Finish", "Finish"), ("Classify", "Classify"))
+
     status_name = models.CharField(max_length=96)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     type = models.CharField(max_length=8, choices=STATUS_CHOICES)
-    
+
     def save(self, *args, **kwargs):
         if self.type not in dict(self.STATUS_CHOICES).keys():
             raise ValueError("The specified status type is not in allowed types!")
         super().save(*args, **kwargs)
-        
+
     def __str__(self):
         return self.status_name
-    
-    
+
+
 class Sector(models.Model):
     name = models.CharField(max_length=54)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,12 +42,33 @@ class Button(models.Model):
 
 
 class HighStructuredMessage(models.Model):
+
+    STATUS_CHOICES = (
+        ("pending", "PENDING"),
+        ("rejected", "REJECTED"),
+        ("approved", "APPROVED"),
+        ("disabled", "DISABLED"),
+        ("paused", "PAUSED"),
+    )
+
+    CATEGORY_CHOICES = (
+        ("marketing", "MARKETING"),
+        ("utility", "UTILITY"),
+        ("authentication", " AUTHENTICATION"),
+    )
+
     name = models.CharField(
         max_length=512,
     )
     body = models.TextField(
         max_length=1052,
     )
+    external_template_id = models.CharField(max_length=16, null=True, blank=True)
+    category = models.CharField(
+        max_length=14, choices=CATEGORY_CHOICES, default="marketing"
+    )
+    rejected_reason = models.CharField(max_length=96, default="")
+    status = models.CharField(max_length=14, choices=STATUS_CHOICES, default="pending")
     header = models.CharField(max_length=256, null=True, blank=True)
     footer = models.CharField(max_length=256, null=True, blank=True)
     buttons = models.ManyToManyField(to=Button, blank=True)
@@ -100,7 +118,7 @@ class Attendance(models.Model):
 
     def __str__(self):
         attendance_status = "FINALIZADO" if self.is_closed else "EM ABERTO"
-        return f"{self.customer_name} - {self.customer_phone_number} - {self.id} {attendance_status}" 
+        return f"{self.customer_name} - {self.customer_phone_number} - {self.id} {attendance_status}"
 
 
 class Message(models.Model):
@@ -111,10 +129,12 @@ class Message(models.Model):
         indexes = [
             models.Index(
                 fields=[
-                    "attendance", "created_at",
+                    "attendance",
+                    "created_at",
                 ]
             )
         ]
+
     reaction = models.CharField(max_length=16, null=True, blank=True)
     whatsapp_message_id = models.CharField(max_length=128)
     send_by_operator = models.BooleanField(default=False)
@@ -125,7 +145,9 @@ class Message(models.Model):
     media_id = models.CharField(max_length=255, blank=True, null=True)
     media = models.FileField(upload_to="media", blank=True, null=True)
     contacts = models.ManyToManyField(Contact, "contacts", blank=True)
-    context = models.ForeignKey("self", on_delete=models.SET_NULL, blank=True, null=True)
+    context = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, blank=True, null=True
+    )
     origin_identifier = models.CharField(max_length=13, blank=True, null=True)
     failed_reason = models.CharField(max_length=128, null=True, blank=True)
     attendance = models.ForeignKey(
@@ -138,8 +160,10 @@ class Message(models.Model):
 
     hsm_footer = models.CharField(max_length=60, blank=True, null=True, default="")
     hsm_header = models.CharField(max_length=60, blank=True, null=True, default="")
-    hsm_buttons = ArrayField(models.CharField(max_length=25), blank=True, null=True, size=8)
-    
+    hsm_buttons = ArrayField(
+        models.CharField(max_length=25), blank=True, null=True, size=8
+    )
+
     def __str__(self):
         return f"ID:{self.id} --> {self.body} enviada em {self.created_at}"
 
@@ -162,4 +186,3 @@ class WabaChannel(models.Model):
     def __str__(self):
 
         return f"{self.id} - {self.channel_name} - {self.channel_phone}"
-

@@ -101,7 +101,7 @@ class HsmAPIView(APIView):
         return Response(data=serializer.data, status=HTTP_200_OK)
 
 
-class MidiaUpload(APIView):
+class MidiaUploadAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, format=None):

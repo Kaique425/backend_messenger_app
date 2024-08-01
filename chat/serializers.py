@@ -34,6 +34,8 @@ class HighStructuredMessageSerializer(serializers.ModelSerializer):
         model = HighStructuredMessage
         fields = [
             "id",
+            "category",
+            "status",
             "name",
             "body",
             "footer",

@@ -8,7 +8,7 @@ from .models import Message, WhatsAppPOST
 
 enviroment = load_dotenv()
 
-send_message_url = "https://graph.facebook.com/v16.0/101917902878484/messages"
+send_message_url = "https://graph.facebook.com/v20.0/101917902878484/messages"
 
 headers = {
     "Content-Type": "application/json",
@@ -81,12 +81,13 @@ def send_whatsapp_hsm_message(data):
     if components:
         json["template"]["components"] = mounteds_components
 
-    
     with requests.post(send_message_url, headers=headers, json=json) as response:
         message_data = response.json()
         WhatsAppPOST.objects.create(body=message_data)
-        
-    print(f"Status: {response.status_code} Content: {response.content} Response: {response}")
+
+    print(
+        f"Status: {response.status_code} Content: {response.content} Response: {response}"
+    )
     return response.status_code, message_data
 
 

@@ -17,6 +17,7 @@ def attendance_saved(sender, instance, created, **kwargs):
     json_message = json.dumps(
         {
             "id": instance.id,
+            "is_closed": instance.is_closed,
             "last_message_was_sent_by_operator": instance.last_message_was_sent_by_operator,
             "unread_messages_quantity": instance.unread_messages_quantity,
             "attendance_channel": instance.attendance_channel,

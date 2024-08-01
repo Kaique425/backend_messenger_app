@@ -24,6 +24,7 @@ class StatusAdmin(admin.ModelAdmin):
         "status_name",
     )
 
+
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at", "id"]
@@ -65,7 +66,9 @@ class WhatsAppPOSTAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    readonly_fields = ["created_at",]
+    readonly_fields = [
+        "created_at",
+    ]
     ordering = ("-created_at",)
     fields = (
         "body",
@@ -98,6 +101,10 @@ class HighStructuredMessageAdmin(admin.ModelAdmin):
         "body_variables_quantity",
         "header_variables_quantity",
         "language_code",
+        "external_template_id",
+        "category",
+        "rejected_reason",
+        "status",
     )
 
 
