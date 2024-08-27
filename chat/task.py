@@ -25,7 +25,7 @@ def process_message(notification_data):
     notification_changes_field = notification_entry["changes"][0]["field"]
     
     if notification_changes_field == "message_template_status_update":
-        template = HighStructuredMessage.objects.filter(external_id=notification_changes_value["message_template_id"])
+        template = HighStructuredMessage.objects.filter(external_template_id=notification_changes_value["message_template_id"])
         template.language_code = notification_changes_value["message_template_name"]
         template.status = notification_changes_value["event"]
         template.reject_reason = notification_changes_value["reason"]

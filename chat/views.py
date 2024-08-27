@@ -94,6 +94,13 @@ class HistoryMessageListAPIView(APIView):
 
 class HsmAPIView(APIView):
     
+    def post(self, request):
+        data = request.data
+        
+        hsm_component_list = [component for component in data.values()]
+        
+        return Response(data=hsm_component_list)
+    
     def get(self, request):
         instances = HighStructuredMessage.objects.prefetch_related("buttons")
         serializer = HighStructuredMessageSerializer(instance=instances, many=True)
