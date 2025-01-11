@@ -166,9 +166,7 @@ class MidiaUploadAPIView(APIView):
 
             message_instance = serializer.instance
             phone_number = request.data["phone_number"]
-            print(
-                f"Phone => {request.data["phone_number"]} mensagem => {message_instance}"
-            )
+
             link_message_to_attendance(phone_number, message_instance, "15550947876")
 
             return Response(serializer.data, status=HTTP_200_OK)

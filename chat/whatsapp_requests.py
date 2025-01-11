@@ -28,7 +28,6 @@ def create_template_message(template_info):
     with requests.post(
         template_creation_url, headers=headers, json=template_info
     ) as response:
-        print(response.text, response.content, response.status_code)
         return response
 
 
@@ -61,7 +60,6 @@ def get_media_url(media_id):
         media_url = data["url"]
 
         media_response = requests.get(media_url, headers=headers)
-        print(f"Media URL ----> {media_response}")
         return media_response
     except:
         print(f"Error status code {status_code}")
@@ -98,9 +96,6 @@ def send_whatsapp_hsm_message(data):
         message_data = response.json()
         WhatsAppPOST.objects.create(body=message_data)
 
-    print(
-        f"Status: {response.status_code} Content: {response.content} Response: {response}"
-    )
     return response.status_code, message_data
 
 
