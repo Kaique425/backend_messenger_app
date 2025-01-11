@@ -2,10 +2,11 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.db.models.signals import post_save
+from django.core.cache import cache
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Attendance
+from .models import Attendance, Sector
 
 
 @receiver(post_save, sender=Attendance)
@@ -39,3 +40,10 @@ def attendance_saved(sender, instance, created, **kwargs):
         print("An Attendance was created")
     else:
         print("An Attendance was updated")
+
+
+@receiver(post_save, sender=Sector)
+@receiver(post_delete, sender=Sector)
+def invalidate_cache_on_change(sender, **kwargs):
+    print(cache)
+    cache.delete("sector_list")

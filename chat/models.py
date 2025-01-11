@@ -1,8 +1,7 @@
 from django.contrib.postgres.fields import ArrayField
-from django.db import models, transaction
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.db import models
 from django.utils import timezone
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Status(models.Model):
@@ -87,11 +86,13 @@ class WhatsAppPOST(models.Model):
 
 
 class Contact(models.Model):
+    edited_name = models.CharField(max_length=96, blank=True, null=True)
     name = models.CharField(max_length=96, blank=True, null=True)
-    phone = models.CharField(max_length=20, unique=True)
+    phone = PhoneNumberField(unique=True, blank=True, null=True)
     type = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    email = models.EmailField(max_length=254, blank=True)
 
     def __str__(self):
         return self.name

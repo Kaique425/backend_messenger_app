@@ -47,9 +47,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "chat",
     "user",
+    # third party apps.
     "debug_toolbar",
     "rest_framework",
     "corsheaders",
+    "phonenumber_field",
+    "django_filters",
 ]
 
 
@@ -104,14 +107,12 @@ WSGI_APPLICATION = "core.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE"),
-        "NAME": os.getenv("POSTGRES_DB"),  # Nome do seu banco de dados
-        "USER": os.getenv("POSTGRES_USER"),  # Nome de usuário do PostgreSQL
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),  # Senha do PostgreSQL
-        "HOST": os.getenv(
-            "POSTGRES_HOST"
-        ),  # Endereço do host (neste caso, seu contêiner Docker)
-        "PORT": os.getenv("POSTGRES_PORT"),  # Porta padrão do PostgreSQL
-        'CONN_MAX_AGE': 600, #10 minutes
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
+        "CONN_MAX_AGE": 600,
     }
 }
 

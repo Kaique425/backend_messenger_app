@@ -3,6 +3,19 @@ from rest_framework import serializers
 from .models import Attendance, Button, Contact, HighStructuredMessage, Message, Sector
 
 
+class ContactSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Contact
+        fields = (
+            "name",
+            "phone",
+            "type",
+            "created_at",
+            "updated_at",
+        )
+
+
 class SectorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sector

@@ -7,6 +7,7 @@ api_router = SimpleRouter()
 
 api_router.register("sectors", views.SectorViewSet)
 api_router.register("attendances", views.AttendanceDetailAPIView)
+api_router.register("contacts", views.ContactViewSet)
 
 print(api_router.urls)
 

@@ -10,6 +10,10 @@ enviroment = load_dotenv()
 
 send_message_url = "https://graph.facebook.com/v20.0/101917902878484/messages"
 
+template_creation_url = (
+    "https://graph.facebook.com/v20.0/101917902878484/message_templates"
+)
+
 headers = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {os.getenv('WHATSAPP_PERMANENT_TOKEN')}",
@@ -17,6 +21,15 @@ headers = {
 
 DEBUG = True
 NGROK_URL = os.getenv("NGROK_URL")
+API_VERSION = os.getenv("WHATSAPP_API_VERSION")
+
+
+def create_template_message(template_info):
+    with requests.post(
+        template_creation_url, headers=headers, json=template_info
+    ) as response:
+        print(response.text, response.content, response.status_code)
+        return response
 
 
 def save_media_message():

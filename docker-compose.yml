@@ -1,50 +1,140 @@
+# version: "3.8"
+
+# services:
+#   django:
+#     build: .
+#     container_name: django
+#     command: >
+#       sh -c "python manage.py makemigrations && 
+#              python manage.py migrate && 
+#              python manage.py runserver 0.0.0.0:8000"
+#     volumes:
+#       - .:/usr/src/app/
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - PYTHONJIT=1
+#       - DEBUG=1
+#       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+#       - CELERY_BROKER=redis://redis:6379/0
+#       - CELERY_BACKEND=redis://redis:6379/0
+#     depends_on:
+#       - pgdb
+#       - redis
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: "256M"
+
+#   celery:
+#     build: .
+#     command: celery -A core worker -l INFO
+#     volumes:
+#       - .:/usr/src/app
+#     environment:
+#       - PYTHONJIT=1
+#       - PYTHONUNBUFFERED=1
+#       - DEBUG=1
+#       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+#       - CELERY_BROKER=redis://redis:6379/0
+#       - CELERY_BACKEND=redis://redis:6379/0
+#     depends_on:
+#       - django
+#       - redis
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: "256M"
+
+#   pgdb:
+#     image: postgres
+#     container_name: pgdb
+#     environment:
+#       - POSTGRES_DB=postgres
+#       - POSTGRES_USER=postgres
+#       - POSTGRES_PASSWORD=postgres
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data/
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.3"
+#           memory: "512M"
+
+#   redis:
+#     image: "redis:alpine"
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.2"
+#           memory: "128M" 
+
+# volumes:
+#   pgdata:
+
+
 version: "3.8"
-   
+
 services:
-    django:
-        build: .
-        container_name: django
-        command: >
-          sh -c "python manage.py makemigrations && 
-                 python manage.py migrate && 
-                 python manage.py runserver 0.0.0.0:8000"
-        volumes:
-            - .:/usr/src/app/
-        ports:
-           - "8000:8000"
-        environment:
-            - DEBUG=1
-            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
-            - CELERY_BROKER=redis://redis:6379/0
-            - CELERY_BACKEND=redis://redis:6379/0
-        depends_on:
-            - pgdb
-            - redis
-    celery:
-        build: .
-        command: celery -A core worker -l INFO
-        volumes:
-            - .:/usr/src/app
-        environment:
-            - PYTHONUNBUFFERED=1
-            - DEBUG=1
-            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
-            - CELERY_BROKER=redis://redis:6379/0
-            - CELERY_BACKEND=redis://redis:6379/0
-        depends_on:
-            - django
-            - redis
-    pgdb:
-        image: postgres
-        container_name: pgdb
-        environment:
-            - POSTGRES_DB=postgres
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
-        volumes:
-            - pgdata:/var/lib/postgresql/data/
-    redis:
-        image: "redis:alpine"
-        
+  django:
+    build: .
+    container_name: django
+    command: >
+      sh -c "python manage.py makemigrations && 
+             python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/usr/src/app/
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONJIT=1
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - pgdb
+      - redis
+    mem_limit: 256m
+    cpus: 0.3
+
+  celery:
+    build: .
+    command: celery -A core worker -l INFO
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - PYTHONJIT=1
+      - PYTHONUNBUFFERED=1
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - django
+      - redis
+    mem_limit: 256m
+    cpus: 0.3
+
+  pgdb:
+    image: postgres
+    container_name: pgdb
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    mem_limit: 512m
+    cpus: 0.3
+
+  redis:
+    image: "redis:alpine"
+    mem_limit: 128m
+    cpus: 0.2
+
 volumes:
-    pgdata:
+  pgdata:
