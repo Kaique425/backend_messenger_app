@@ -1,17 +1,25 @@
+import asyncio
 import os
+from typing import Any
 
+import aiohttp
 import requests
 from django.core.exceptions import ObjectDoesNotExist
 from dotenv import load_dotenv
+from requests import Response
 
 from .models import Message, WhatsAppPOST
 
+META_API_VERSION: str = os.getenv("WHATSAPP_API_VERSION")
 enviroment = load_dotenv()
+PHONE_NUMBER_ID: str = "724341050763595"
 
-send_message_url = "https://graph.facebook.com/v20.0/101917902878484/messages"
+send_message_url = (
+    f"https://graph.facebook.com/{META_API_VERSION}/{PHONE_NUMBER_ID}/messages"
+)
 
 template_creation_url = (
-    "https://graph.facebook.com/v20.0/101917902878484/message_templates"
+    "fhttps://graph.facebook.com/{META_API_VERSION}/{PHONE_NUMBER_ID}/message_templates"
 )
 
 headers = {
@@ -21,7 +29,6 @@ headers = {
 
 DEBUG = True
 NGROK_URL = os.getenv("NGROK_URL")
-API_VERSION = os.getenv("WHATSAPP_API_VERSION")
 
 
 def create_template_message(template_info):
@@ -35,34 +42,35 @@ def save_media_message():
     return True
 
 
-def send_media_messages(file, caption, phone_number):
-    new_file_link = file.replace("http://localhost:8000", NGROK_URL)
-    json = {
+def send_media_messages(file, caption, phone_number) -> tuple:
+    new_file_link: str = file.replace("http://localhost:8000", NGROK_URL)
+    json: dict = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
         "to": phone_number,
         "type": "image",
         "image": {"link": new_file_link, "caption": caption},
     }
-    response = requests.post(url=send_message_url, headers=headers, json=json)
+    response: Response = requests.post(url=send_message_url, headers=headers, json=json)
 
-    data = response.json()
+    data: Any = response.json()
     return data, response.status_code
 
 
-def get_media_url(media_id):
+def get_media_url(media_id) -> Response | None:
     try:
-        url = f"https://graph.facebook.com/v16.0/{media_id}/"
-        response = requests.get(url, headers=headers)
-        data = response.json()
+        url: str = f"https://graph.facebook.com/{META_API_VERSION}/{media_id}/"
+        response: Response = requests.get(url, headers=headers)
+        data: dict = response.json()
 
         status_code = response.status_code
         media_url = data["url"]
 
-        media_response = requests.get(media_url, headers=headers)
+        media_response: Response = requests.get(media_url, headers=headers)
         return media_response
     except:
         print(f"Error status code {status_code}")
+        return None
 
 
 def send_whatsapp_hsm_message(data):
@@ -88,7 +96,7 @@ def send_whatsapp_hsm_message(data):
             "language": {"code": data["code"]},
         },
     }
-
+    print(f"JSON {json}")
     if components:
         json["template"]["components"] = mounteds_components
 
@@ -120,6 +128,6 @@ def send_whatsapp_message(message, phone_number, replayed_message_id=None):
 
     with requests.post(send_message_url, headers=headers, json=json_data) as response:
         message_data = response.json()
-        WhatsAppPOST.objects.create(body=response)
+        WhatsAppPOST.objects.create(body=message_data)
 
     return response.status_code, message_data

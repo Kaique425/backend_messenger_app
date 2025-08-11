@@ -1,17 +1,13 @@
-version: "3.8"
-
 services:
   django:
     build: .
     container_name: django
     command: >
-      sh -c "python manage.py makemigrations && 
-             python manage.py migrate && 
-             python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py runserver 0.0.0.0:8001"
     volumes:
       - .:/usr/src/app/
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       - PYTHONJIT=1
       - DEBUG=1
@@ -21,12 +17,15 @@ services:
     depends_on:
       - pgdb
       - redis
-    mem_limit: 256m
-    cpus: 0.3
+    mem_limit: 500m
+    cpus: 0.5
 
   celery:
     build: .
-    command: celery -A core worker -l INFO
+    command: celery -A core worker -l INFO -P threads -c 100 --prefetch-multiplier=1
+
+# celery -A core worker -l INFO -P solo --concurrency=1
+
     volumes:
       - .:/usr/src/app
     environment:
@@ -35,12 +34,14 @@ services:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
       - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
+      - CELERY_WORKER_PREFETCH_MULTIPLIER=10
+      - CELERY_RESULT_BACKEND=rpc://
+      - CELERY_IGNORE_RESULT=True
     depends_on:
       - django
       - redis
-    mem_limit: 256m
-    cpus: 0.3
+    mem_limit: 500m
+    cpus: 1.0
 
   pgdb:
     image: postgres
@@ -56,7 +57,8 @@ services:
 
   redis:
     image: "redis:alpine"
-    mem_limit: 128m
+    command: redis-server --save "" --appendonly no
+    mem_limit: 512m
     cpus: 0.2
 
 volumes:

@@ -1,6 +1,20 @@
 from rest_framework import serializers
 
-from .models import Attendance, Button, Contact, HighStructuredMessage, Message, Sector
+from .models import (
+    Attendance,
+    Button,
+    Contact,
+    HighStructuredMessage,
+    Message,
+    Sector,
+    WhatsAppPOST,
+)
+
+
+class WhatsAppPOSTSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppPOST
+        fields = ("body",)
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -14,6 +28,13 @@ class ContactSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    def validate_phone(self, value):
+        if Contact.objects.filter().exists():
+            raise serializers.ValidationError(
+                code="unique", detail="This contact with phone number already exists."
+            )
+        return value
 
 
 class SectorSerializer(serializers.ModelSerializer):

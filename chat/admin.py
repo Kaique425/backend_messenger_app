@@ -13,7 +13,6 @@ from .models import (
 )
 
 
-# Register your models here.
 @admin.register(Status)
 class StatusAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")

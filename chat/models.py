@@ -66,7 +66,7 @@ class HighStructuredMessage(models.Model):
     category = models.CharField(
         max_length=14, choices=CATEGORY_CHOICES, default="marketing"
     )
-    rejected_reason = models.CharField(max_length=96, default="")
+    rejected_reason = models.CharField(max_length=96, default="", blank=True, null=True)
     status = models.CharField(max_length=14, choices=STATUS_CHOICES, default="pending")
     header = models.CharField(max_length=256, null=True, blank=True)
     footer = models.CharField(max_length=256, null=True, blank=True)
@@ -95,7 +95,7 @@ class Contact(models.Model):
     email = models.EmailField(max_length=254, blank=True)
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
 
 class Attendance(models.Model):

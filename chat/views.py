@@ -1,16 +1,28 @@
 import json
+from typing import Dict, List, Set
 
+import pandas as pd
+from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import UploadedFile
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
+from ftfy import fix_text
+from pandas import DataFrame
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_201_CREATED,
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+)
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from chat.utils import link_message_to_attendance
+from chat.utils import get_valid_phone_number, link_message_to_attendance
 
 from .filters import ContactFilter
 from .models import (
@@ -30,6 +42,7 @@ from .serializers import (
     MessageSerializer,
     SectorSerializer,
     TemplateMessageSerializer,
+    WhatsAppPOSTSerializer,
 )
 from .task import process_message
 from .whatsapp_requests import (
@@ -40,11 +53,111 @@ from .whatsapp_requests import (
 )
 
 
+class WhatsAppPOSTViewSet(ModelViewSet):
+    queryset = WhatsAppPOST.objects.all()
+    serializer_class = WhatsAppPOSTSerializer
+
+
 class ContactViewSet(ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = ContactFilter
+
+
+class BatchContactImport(APIView):
+    parser_classes = (FormParser, MultiPartParser)
+
+    def post(self, request, *args, **kwargs) -> Response:
+        contacts_file: UploadedFile = request.FILES.get("file")
+        required_columns: Set[str] = getattr(
+            settings, "CONTACTS_IMPORT_REQUIRED_COLUMNS"
+        )
+
+        if not contacts_file:
+            return Response(
+                {"Error": "Any file was found!"}, status=HTTP_400_BAD_REQUEST
+            )
+        filename = str(contacts_file)
+
+        if not filename.endswith(".csv"):
+            return Response(
+                {
+                    "Error": "Only csv files are valid to import contacts, convert the file to csv and try again!"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        df: DataFrame = pd.read_csv(contacts_file, dtype="string")
+
+        if not required_columns.issubset(df.columns):
+            missing_columns: Set[str] = required_columns - set(df.columns)
+            return Response(
+                {
+                    "Error": f"There are missings columns, please add them to the csv file: {missing_columns}"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        df.fillna("", inplace=True)
+        df["Nome"] = df["Nome"].apply(fix_text)
+        df["Telefone"] = df["Telefone"].apply(get_valid_phone_number)
+        df = df[df["Telefone"].notna()]
+        df["type"] = "Imported"
+
+        df.rename(
+            columns={
+                "Nome": "name",
+                "Telefone": "phone",
+                "E-Mail": "email",
+            },
+            inplace=True,
+        )
+        response_df = json.dumps(df.to_dict())
+
+        serializer = ContactSerializer(data=df.to_dict(orient="records"), many=True)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            error_messages: List[str] = []
+            print(serializer.errors)
+            for messages in serializer.errors:
+                error_messages.append(
+                    f"Field erro(s): {",".join(messages)}",
+                )
+
+            return Response(
+                {
+                    "Message": "Some errors occurred during the import process",
+                    "Errors": serializer.errors,
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "Message": "Contacts importation was done with success!",
+                "Contacts": response_df,
+            },
+            status=HTTP_201_CREATED,
+        )
+
+
+class BatchContactValidation(APIView):
+    parser_classes = (FormParser, MultiPartParser)
+
+    def post(self, request, *args) -> Response:
+        contact_file: UploadedFile = request.FILES.get("file")
+
+        df: DataFrame = pd.read_csv(contact_file, dtype="string")
+
+        return Response(
+            {
+                "Message": "Validation occurred with success!",
+                "Data": "Data",
+            }
+        )
 
 
 class SectorViewSet(ModelViewSet):
@@ -135,7 +248,7 @@ class HsmAPIView(APIView):
             "components": hsm_component_list,
         }
 
-        response = create_template_message(template)
+        create_template_message(template)
 
         return Response(data=template)
 
@@ -149,11 +262,11 @@ class HsmAPIView(APIView):
 class MidiaUploadAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
-    def post(self, request, format=None):
+    def post(self, request, format=None) -> Response:
         serializer = MessageSerializer(data=request.data, context={"request": request})
         if serializer.is_valid(raise_exception=True):
             media_file = request.data.get("media_url")
-            if media_file:
+            if media_file and isinstance(serializer.validated_data, dict):
                 serializer.validated_data["media"] = media_file
             serializer.save()
             data, status_code = send_media_messages(
@@ -162,7 +275,7 @@ class MidiaUploadAPIView(APIView):
                 phone_number=request.data["phone_number"],
             )
 
-            serializer.instance.whatsapp_message_id = data["messages"][0].get("id")
+            serializer.instance.whatsapp_message_id = data["messages"][0].get("id", "")  # type: ignore
 
             message_instance = serializer.instance
             phone_number = request.data["phone_number"]
@@ -176,63 +289,82 @@ class MidiaUploadAPIView(APIView):
 
 class SendHsmMessageAPIView(APIView):
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         request.data["type"] = "hsm"
-        phone_number = request.data["phone_number"]
+        phone_number: str = str(request.data["phone_number"])
 
         serialized = TemplateMessageSerializer(data=request.data)
         serialized.is_valid(raise_exception=True)
 
-        try:
-            status_code, message_data = send_whatsapp_hsm_message(request.data)
-            whatsapp_message_id = message_data["messages"][0]["id"]
-            message_instance = serialized.save(whatsapp_message_id=whatsapp_message_id)
-            link_message_to_attendance(phone_number, message_instance, "15550947876")
+        status_code, message_data = send_whatsapp_hsm_message(request.data)
 
-            return Response(data=message_data, status=status_code)
+        print(f"MESSAGE => {message_data}")
 
-        except Exception as e:
+        whatsapp_message_id = message_data["messages"][0]["id"]
+        message_instance = serialized.save(
+            whatsapp_message_id=whatsapp_message_id,
+        )
+        link_message_to_attendance(
+            phone_number,
+            message_instance,
+            "5518997753786",
+        )
 
-            return Response({"Error": str(e)}, status=HTTP_400_BAD_REQUEST)
+        return Response(data=message_data, status=status_code)
+        # try:
+
+        # except Exception as e:
+
+        #     return Response({"Error": str(e)}, status=HTTP_400_BAD_REQUEST)
 
 
 class SendMessageAPIView(APIView):
     def post(self, request):
         serialized = MessageSerializer(data=request.data)
         serialized.is_valid(raise_exception=True)
-
+        channel: WabaChannel = WabaChannel.objects.filter().first()
         message_body = request.data["body"]
         context = request.data.get("context", "")
         phone_number = request.data["phone_number"]
 
+        status_code, message_data = send_whatsapp_message(
+            message_body, phone_number, context
+        )
+
         try:
-            status_code, message_data = send_whatsapp_message(
-                message_body, phone_number, context
-            )
             whatsapp_message_id = message_data["messages"][0]["id"]
 
             message_instance = serialized.save(whatsapp_message_id=whatsapp_message_id)
-            link_message_to_attendance(phone_number, message_instance, "15550947876")
+            link_message_to_attendance(
+                phone_number, message_instance, channel.channel_phone
+            )
             return Response(status=status_code, data=serialized.data)
 
         except Exception as e:
 
-            return Response({"Error": str(e)}, status=HTTP_400_BAD_REQUEST)
+            return Response(
+                {"Error": f"{e} ==> Status: {status_code} {message_data}"},
+                status=HTTP_400_BAD_REQUEST,
+            )
 
 
 class Webhook(APIView):
-    def get(self, request):
-        my_token = "teste"
-        params = request.GET
-        hub_challenge = params["hub.challenge"]
-        hub_verify_token = params["hub.verify_token"]
+    def get(self, request) -> Response:
+        my_token: str = "teste"
+        params: Dict = request.GET
+        hub_challenge: str = params["hub.challenge"]
+        hub_verify_token: str = params["hub.verify_token"]
         if my_token == hub_verify_token:
             return Response(int(hub_challenge), status=HTTP_200_OK)
+        return Response(
+            {"Error": "The token that was sended is not valid!"},
+            status=HTTP_401_UNAUTHORIZED,
+        )
 
-    def post(self, request):
-        data = str(request.body)
+    def post(self, request) -> Response:
+        data: str = str(request.body)
         WhatsAppPOST.objects.create(body=data)
-        notification_data = json.loads(request.body.decode())
+        notification_data: Dict = json.loads(request.body.decode())
         process_message.delay(notification_data)
 
         return Response(status=HTTP_200_OK)

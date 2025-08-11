@@ -158,3 +158,5 @@ media/media/
 # VS CODE
 
 .vscode/*
+
+.geminiignore

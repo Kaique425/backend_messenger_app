@@ -11,7 +11,9 @@ from .models import Attendance, Sector
 
 @receiver(post_save, sender=Attendance)
 def attendance_saved(sender, instance, created, **kwargs):
-    print(f"{sender} - {instance} - {created} {kwargs}")
+    print(
+        f"{sender} - {instance} - {created} {kwargs} PHONE: {instance.customer_phone_number}"
+    )
     channel_layer = get_channel_layer()
     channel_name = "1"
 
@@ -22,7 +24,7 @@ def attendance_saved(sender, instance, created, **kwargs):
             "last_message_was_sent_by_operator": instance.last_message_was_sent_by_operator,
             "unread_messages_quantity": instance.unread_messages_quantity,
             "attendance_channel": instance.attendance_channel,
-            "customer_phone_number": instance.customer_phone_number,
+            "customer_phone_number": str(instance.customer_phone_number),
             "customer_name": instance.customer_name,
             "sector": instance.sector.id,
         }
