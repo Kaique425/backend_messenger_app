@@ -7,6 +7,7 @@ from .models import (
     HighStructuredMessage,
     Message,
     Sector,
+    WabaChannel,
     WhatsAppPOST,
 )
 
@@ -15,6 +16,21 @@ class WhatsAppPOSTSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsAppPOST
         fields = ("body",)
+
+
+class WabaChannelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WabaChannel
+        fields = (
+            "channel_external_id",
+            "default_sector_id",
+            "default_sector",
+            "channel_phone",
+            "channel_name",
+            "created_at",
+            "updated_at",
+            "id",
+        )
 
 
 class ContactSerializer(serializers.ModelSerializer):

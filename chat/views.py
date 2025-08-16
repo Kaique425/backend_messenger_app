@@ -7,10 +7,12 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from ftfy import fix_text
 from pandas import DataFrame
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import (
@@ -18,6 +20,7 @@ from rest_framework.status import (
     HTTP_201_CREATED,
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
+    HTTP_500_INTERNAL_SERVER_ERROR,
 )
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -42,6 +45,7 @@ from .serializers import (
     MessageSerializer,
     SectorSerializer,
     TemplateMessageSerializer,
+    WabaChannelSerializer,
     WhatsAppPOSTSerializer,
 )
 from .task import process_message
@@ -51,6 +55,28 @@ from .whatsapp_requests import (
     send_whatsapp_hsm_message,
     send_whatsapp_message,
 )
+
+
+class MeAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def get(self, request):
+        user = request.user
+        print(user.company)
+        return Response(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "role": user.role,
+                "company": {
+                    "id": user.company.id,
+                    "name": user.company.name,
+                },
+            }
+        )
 
 
 class WhatsAppPOSTViewSet(ModelViewSet):
@@ -65,6 +91,15 @@ class ContactViewSet(ModelViewSet):
     filterset_class = ContactFilter
 
 
+@extend_schema(
+    request={
+        "multipart/form-data": {
+            "type": "object",
+            "properties": {"file": {"type": "string", "format": "binary"}},
+        }
+    },
+    responses={201: dict, 400: dict},
+)
 class BatchContactImport(APIView):
     parser_classes = (FormParser, MultiPartParser)
 
@@ -155,7 +190,7 @@ class BatchContactValidation(APIView):
         return Response(
             {
                 "Message": "Validation occurred with success!",
-                "Data": "Data",
+                "Data": df.to_dict,
             }
         )
 
@@ -177,8 +212,11 @@ class SectorViewSet(ModelViewSet):
         return Response(sector_list)
 
 
-class ChannelsViewSet(APIView):
-    def get(self, request):
+class ChannelsViewSet(ModelViewSet):
+    queryset = WabaChannel.objects.all()
+    serializer_class = WabaChannelSerializer
+
+    def list(self, request):
         channels = WabaChannel.objects.all()
         channels_list = channels.values(
             "channel_external_id",
@@ -319,10 +357,10 @@ class SendHsmMessageAPIView(APIView):
 
 
 class SendMessageAPIView(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serialized = MessageSerializer(data=request.data)
         serialized.is_valid(raise_exception=True)
-        channel: WabaChannel = WabaChannel.objects.filter().first()
+        channel: WabaChannel | None = WabaChannel.objects.filter().first()
         message_body = request.data["body"]
         context = request.data.get("context", "")
         phone_number = request.data["phone_number"]
@@ -335,6 +373,15 @@ class SendMessageAPIView(APIView):
             whatsapp_message_id = message_data["messages"][0]["id"]
 
             message_instance = serialized.save(whatsapp_message_id=whatsapp_message_id)
+
+            if not channel:
+
+                return Response(
+                    data={
+                        "Error": "An error occurred while trying to link message to attendace",
+                    },
+                    status=HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             link_message_to_attendance(
                 phone_number, message_instance, channel.channel_phone
             )
@@ -349,6 +396,10 @@ class SendMessageAPIView(APIView):
 
 
 class Webhook(APIView):
+    permission_classes = [
+        AllowAny,
+    ]
+
     def get(self, request) -> Response:
         my_token: str = "teste"
         params: Dict = request.GET
@@ -363,8 +414,8 @@ class Webhook(APIView):
 
     def post(self, request) -> Response:
         data: str = str(request.body)
-        WhatsAppPOST.objects.create(body=data)
         notification_data: Dict = json.loads(request.body.decode())
         process_message.delay(notification_data)
+        WhatsAppPOST.objects.create(body=data)
 
         return Response(status=HTTP_200_OK)

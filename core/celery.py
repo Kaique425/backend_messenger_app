@@ -4,8 +4,7 @@ import sys
 from celery import Celery
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings"),
-os.environ['PYTHONUNBUFFERED'] = '1'
-
+os.environ["PYTHONUNBUFFERED"] = "1"
 
 
 app = Celery("core")

@@ -1,12 +1,15 @@
 import mimetypes
 import os
+from datetime import timedelta
+from pathlib import Path
 from typing import Set
 
+# Monkeypatching Django, so stubs will work for all generics,
+# see: https://github.com/typeddjango/django-stubs
 from dotenv import load_dotenv
 
 enviroment = load_dotenv()
 
-from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,10 +40,12 @@ INSTALLED_APPS = [
     "user",
     # third party apps.
     "debug_toolbar",
+    "rest_framework_simplejwt.token_blacklist",
     "rest_framework",
     "corsheaders",
     "phonenumber_field",
     "django_filters",
+    "drf_spectacular",
 ]
 
 
@@ -172,32 +177,56 @@ STORAGES = {
 }
 
 
-CORS_ALLOW_ALL_ORIGINS = True
-
-
 mimetypes.add_type("image/webp", ".webp")
 
-# REST_FRAMEWORK = {
-#     "DEFAULT_PARSER_CLASSES": (
-#         "rest_framework.parsers.FormParser",
-#         "rest_framework.parsers.MultiPartParser",
-#     )
-# }
+REST_FRAMEWORK: dict = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+    ),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 100,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS: dict = {
+    "TITLE": "Messenger API",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
 
 
-# REST_FRAMEWORK = {
-#     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
-#     "PAGE_SIZE": 100,
-# }
+SIMPLES_JWT: dict = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "sub",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
-AUTH_USER_MODEL = "user.User"
+CORS_ALLOW_ALL_ORIGINS: bool = True
 
-INTERNAL_IPS = [
+CORS_ALLOWED_ORIGINS: list[str] = [
+    "https://chat.kaique-dev.com.br",
+]
+CORS_ALLOW_CREDENTIALS: bool = True
+
+AUTH_USER_MODEL: str = "user.User"
+
+
+INTERNAL_IPS: list[str] = [
     "127.0.0.1",
 ]
 
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
-CELERY_IGNORE_RESULT = True
+CELERY_RESULT_BACKEND: str = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
+CELERY_IGNORE_RESULT: bool = True
 CELERY_BROKER_URL: str = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
 
 
@@ -223,7 +252,7 @@ CONTACTS_IMPORT_REQUIRED_COLUMNS: Set[str] = {
 
 ALLOWED_MEDIA_TYPES: Set[str] = {"audio", "video", "image", "sticker"}
 
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
+DATA_UPLOAD_MAX_NUMBER_FIELDS: int = 2000
 
 REDIS_URL_GATE: str = os.getenv("REDIS_URL_GATE", "redis://redis:6379/0")
 TTL_MESSAGE_STATUS_SECONDS: int = int(os.getenv("TTL_MESSAGE_STATUS_SECONDS", 60))

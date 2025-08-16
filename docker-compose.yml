@@ -3,13 +3,14 @@ services:
     build: .
     container_name: django
     command: >
-      sh -c "python manage.py runserver 0.0.0.0:8001"
+      sh -c "python manage.py makemigrations --noinput && python manage.py migrate --noinput &&
+            python manage.py runserver 0.0.0.0:8001"
     volumes:
       - .:/usr/src/app/
     ports:
       - "8001:8001"
     environment:
-      - PYTHONJIT=1
+      - PYTHONEXPERIMENTAL=jit
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
       - CELERY_BROKER=redis://redis:6379/0
@@ -17,19 +18,16 @@ services:
     depends_on:
       - pgdb
       - redis
-    mem_limit: 500m
-    cpus: 0.5
+    mem_limit: 750m
+    cpus: 2.0
 
   celery:
     build: .
-    command: celery -A core worker -l INFO -P threads -c 100 --prefetch-multiplier=1
-
-# celery -A core worker -l INFO -P solo --concurrency=1
-
+    command: ["/opt/venv/bin/celery", "-A", "core", "worker", "-l", "INFO", "-P", "threads", "-c", "100", "--prefetch-multiplier=1"]
     volumes:
       - .:/usr/src/app
     environment:
-      - PYTHONJIT=1
+      - PYTHONEXPERIMENTAL=jit
       - PYTHONUNBUFFERED=1
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]

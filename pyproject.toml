@@ -1,0 +1,62 @@
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_any_generics = true
+
+[tool.django-stubs]
+django_settings_module = "core.settings"
+
+
+[project]
+name = "backend_messager_app"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+  "Django==5.2.*",
+  "djangorestframework==3.16.*",
+  "channels==4.3.*",
+  "daphne==4.0.*",
+  "channels-redis==4.3.*",
+  "redis==6.*",
+  "celery==5.3.*",
+  "kombu==5.3.*",
+  "billiard==4.2.*",
+  "django-filter==24.3",
+  "django-cors-headers==4.7.*",
+  "requests==2.32.*",
+  "pillow==11.*",
+  "phonenumbers==8.13.*",
+  "django-phonenumber-field==8.*",
+  "python-dotenv>=1.0",
+  "django-debug-toolbar>=6.0.0",
+  "psycopg[binary]==3.2.*",
+  "pandas>=2.3.1",
+  "ftfy>=6.3.1",
+  "aiohttp>=3.12.15",
+  "twisted[http2,tls]>=25.5.0",
+  "drf-spectacular>=0.28.0",
+  "django-stubs-ext>=5.2.2",
+  "djangorestframework-simplejwt[token-blacklist]>=5.5.1",
+]
+
+[dependency-groups]
+container_debug = ["ipython"]
+
+local_dev = [
+  "ruff",
+  "mypy",
+  "pytest",
+  "pytest-django",
+  "coverage",
+  "django-stubs",
+  "django-stubs-ext",
+  "djangorestframework-stubs>=3.16.1",
+  "celery-types>=0.23.0",
+  "types-requests>=2.32.4.20250809",
+]
+
+[tool.uv]
+default-groups = ["local_dev"]
