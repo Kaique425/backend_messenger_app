@@ -38,8 +38,7 @@ dependencies = [
   "aiohttp>=3.12.15",
   "twisted[http2,tls]>=25.5.0",
   "drf-spectacular>=0.28.0",
-  "django-stubs-ext>=5.2.2",
-  "djangorestframework-simplejwt[token-blacklist]>=5.5.1",
+  "djangorestframework-simplejwt>=5.5.1",
 ]
 
 [dependency-groups]
@@ -59,4 +58,4 @@ local_dev = [
 ]
 
 [tool.uv]
-default-groups = ["local_dev"]
+default-groups = []
