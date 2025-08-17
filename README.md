@@ -42,12 +42,12 @@ Inclui Webhook para recebimento de eventos, envio de mensagens usando templates 
 ## Arquitetura
 ```mermaid
 flowchart LR
-  ClientApp[Cliente REST / Front-end] -->|HTTP(S)| API[Django + DRF (Django REST Framework)]
-  API -->|POST/GET| WhatsAppAPI[WhatsApp Cloud API]
-  WhatsAppAPI -->|Webhook POST| Webhook[Endpoint Webhook]
+  ClientApp[Cliente REST/Front-end] -->|HTTPS| API[Django + DRF]
+  API -->|REST| WhatsAppAPI[WhatsApp Cloud API]
+  WhatsAppAPI -->|Webhook| Webhook[Endpoint Webhook]
   Webhook -->|Task Async| CeleryQueue[Celery + Redis]
-  CeleryQueue -->|Processa/Enriquece| DB[(PostgreSQL)]
-  API -->|WS| Channels[Django Channels]
+  CeleryQueue -->|Persistência| DB[(PostgreSQL)]
+  API -->|WebSocket| Channels[Django Channels]
   DB <--> API
 ```
 
