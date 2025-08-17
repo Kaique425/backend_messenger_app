@@ -167,17 +167,17 @@ docker compose up --build
 ## Fluxo de Mensagem
 ```mermaid
 sequenceDiagram
-  participant C as Cliente (WhatsApp)
-  participant W as WhatsApp Cloud API
-  participant S as Seu Backend (Django/DRF)
-  participant Q as Celery/Redis
-  participant DB as PostgreSQL
+  participant C as "Cliente (WhatsApp)"
+  participant W as "WhatsApp Cloud API"
+  participant S as "Backend (Django/DRF)"
+  participant Q as "Celery/Redis"
+  participant DB as "PostgreSQL"
 
   C->>W: Envia mensagem
   W->>S: POST /webhook/whatsapp (payload)
   S->>Q: Enfileira processamento
   Q->>DB: Persiste/atualiza entidades
-  S-->>Front: Notifica via WebSocket (Channels)
+  S-->>C: Notifica via WebSocket (Channels)
   S->>W: (Opcional) Responde usando Send Message/Template
   W->>C: Entrega mensagem
 ```
